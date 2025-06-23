@@ -20,17 +20,17 @@ import (
 
 // RouterConfig holds dependencies for router setup
 type RouterConfig struct {
-	Config              *config.Config
-	Logger              *logging.Logger
-	UserRepo            repository.UserRepository
-	DriverRepo          repository.DriverRepository
-	PassengerRepo       repository.PassengerRepository
-	TripRepo            repository.TripRepository
-	ObservabilityRepo   repository.ObservabilityRepository
-	TraditionalRepo     repository.TraditionalRepository
-	ActorSystem         *actor.ActorSystem
-	TraditionalMonitor  *traditional.TraditionalMonitor
-	RideService         *service.RideService
+	Config             *config.Config
+	Logger             *logging.Logger
+	UserRepo           repository.UserRepository
+	DriverRepo         repository.DriverRepository
+	PassengerRepo      repository.PassengerRepository
+	TripRepo           repository.TripRepository
+	ObservabilityRepo  repository.ObservabilityRepository
+	TraditionalRepo    repository.TraditionalRepository
+	ActorSystem        *actor.ActorSystem
+	TraditionalMonitor *traditional.TraditionalMonitor
+	RideService        *service.RideService
 }
 
 // SetupRouter configures and returns the Gin router with all routes and middleware
@@ -177,6 +177,8 @@ func setupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			{
 				eventRoutes.GET("", observabilityHandler.GetEventLogs)
 			}
+
+			observabilityRoutes.GET("/prometheus", observabilityHandler.GetPrometheusMetrics)
 		}
 
 		// Traditional monitoring routes
@@ -255,7 +257,9 @@ func setupHealthRoutes(router *gin.Engine, cfg *RouterConfig) {
 			}
 
 			// Check database connectivity (if repositories implement health check)
-			if healthChecker, ok := cfg.UserRepo.(interface{ HealthCheck(ctx context.Context) error }); ok {
+			if healthChecker, ok := cfg.UserRepo.(interface {
+				HealthCheck(ctx context.Context) error
+			}); ok {
 				if err := healthChecker.HealthCheck(ctx); err != nil {
 					checks["database"] = "error"
 					allHealthy = false

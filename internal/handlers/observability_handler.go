@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -602,4 +603,77 @@ func (h *ObservabilityHandler) GetLatestServiceHealth(c *gin.Context) {
 		"status":    "healthy",
 		"timestamp": "2024-01-01T00:00:00Z", // Placeholder
 	})
+}
+
+// GetPrometheusMetrics handles Prometheus metrics endpoint
+// @Summary Get Prometheus metrics
+// @Description Get metrics in Prometheus format for scraping
+// @Tags observability
+// @Produce plain
+// @Success 200 {string} string "Prometheus metrics"
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/observability/prometheus [get]
+func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
+	// Get system metrics from repository
+	metrics, err := h.obsRepo.ListSystemMetrics(c.Request.Context(), "", 100, 0)
+	if err != nil {
+		c.Header("Content-Type", "text/plain; charset=utf-8")
+		c.String(http.StatusInternalServerError, "# Error getting metrics\n")
+		return
+	}
+
+	// Convert to Prometheus format
+	var prometheusMetrics string
+	
+	// Add help and type information
+	prometheusMetrics += "# HELP actor_system_cpu_usage CPU usage percentage\n"
+	prometheusMetrics += "# TYPE actor_system_cpu_usage gauge\n"
+	prometheusMetrics += "# HELP actor_system_memory_usage Memory usage in bytes\n"
+	prometheusMetrics += "# TYPE actor_system_memory_usage gauge\n"
+	prometheusMetrics += "# HELP actor_system_goroutines Number of goroutines\n"
+	prometheusMetrics += "# TYPE actor_system_goroutines gauge\n"
+	prometheusMetrics += "# HELP actor_system_heap_alloc Heap allocation in bytes\n"
+	prometheusMetrics += "# TYPE actor_system_heap_alloc gauge\n"
+
+	// Convert metrics to Prometheus format
+	for _, metric := range metrics {
+		switch metric.MetricType {
+		case "cpu_usage":
+			actorID := "unknown"
+			if metric.ActorID != nil {
+				actorID = *metric.ActorID
+			}
+			prometheusMetrics += fmt.Sprintf("actor_system_cpu_usage{instance_id=\"%s\"} %f %d\n", 
+				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
+		case "memory_usage":
+			actorID := "unknown"
+			if metric.ActorID != nil {
+				actorID = *metric.ActorID
+			}
+			prometheusMetrics += fmt.Sprintf("actor_system_memory_usage{instance_id=\"%s\"} %f %d\n", 
+				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
+		case "goroutines":
+			actorID := "unknown"
+			if metric.ActorID != nil {
+				actorID = *metric.ActorID
+			}
+			prometheusMetrics += fmt.Sprintf("actor_system_goroutines{instance_id=\"%s\"} %f %d\n", 
+				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
+		case "heap_alloc":
+			actorID := "unknown"
+			if metric.ActorID != nil {
+				actorID = *metric.ActorID
+			}
+			prometheusMetrics += fmt.Sprintf("actor_system_heap_alloc{instance_id=\"%s\"} %f %d\n", 
+				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
+		}
+	}
+
+	// Add some basic application metrics
+	prometheusMetrics += "# HELP actor_system_up Application up status\n"
+	prometheusMetrics += "# TYPE actor_system_up gauge\n"
+	prometheusMetrics += "actor_system_up 1\n"
+
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.String(http.StatusOK, prometheusMetrics)
 }
