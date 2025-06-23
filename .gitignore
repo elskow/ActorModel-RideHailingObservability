@@ -1,0 +1,168 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+logs/
+
+# Build artifacts
+build/
+dist/
+bin/
+tmp/
+
+# Application specific
+actor-model-observability
+actor-model-observability_unix
+actor-model-observability.exe
+
+# Coverage reports
+coverage.out
+coverage.html
+
+# Air live reload
+.air.toml.local
+build-errors.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker volumes
+postgres_data/
+redis_data/
+prometheus_data/
+grafana_data/
+pgadmin_data/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+
+# Documentation build
+docs/build/
+docs/_build/
+
+# Swagger generated files
+docs/docs.go
+docs/swagger.json
+docs/swagger.yaml
+
+# Test artifacts
+testdata/output/
+
+# Profiling files
+*.prof
+*.pprof
+
+# Security scan results
+gosec-report.json
+
+# Dependency analysis
+go.sum.backup
+
+# Local development overrides
+docker-compose.override.yml
+
+# Certificates and keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Configuration overrides
+config.local.yaml
+config.local.json
+
+# Scripts output
+scripts/output/
+
+# Monitoring data
+prometheus/
+grafana/provisioning/dashboards/*.json
+
+# Load testing results
+load-test-results/
+
+# Benchmark results
+benchmark-results/
+
+# Migration files (if using a migration tool)
+migrations/*.sql.backup
+
+# Local development tools
+.tool-versions
+
+# Node modules (if using any JS tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if using any Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Local configuration
+.local/

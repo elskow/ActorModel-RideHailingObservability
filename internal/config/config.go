@@ -1,0 +1,418 @@
+package config
+
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"time"
+)
+
+// Config holds all configuration for the application
+type Config struct {
+	Server   ServerConfig
+	Database DatabaseConfig
+	Redis    RedisConfig
+	Actor    ActorConfig
+	Logging  LoggingConfig
+	Metrics  MetricsConfig
+}
+
+// ServerConfig holds HTTP server configuration
+type ServerConfig struct {
+	Port         string
+	Host         string
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
+	Mode         string // gin mode: debug, release, test
+}
+
+// DatabaseConfig holds PostgreSQL database configuration
+type DatabaseConfig struct {
+	Host            string
+	Port            string
+	User            string
+	Password        string
+	DBName          string
+	SSLMode         string
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+	ConnMaxIdleTime time.Duration
+}
+
+// RedisConfig holds Redis configuration
+type RedisConfig struct {
+	Host         string
+	Port         string
+	Password     string
+	DB           int
+	PoolSize     int
+	MinIdleConns int
+	DialTimeout  time.Duration
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+}
+
+// ActorConfig holds actor system configuration
+type ActorConfig struct {
+	MaxActors           int
+	MessageBufferSize   int
+	SupervisionStrategy string // restart, stop, ignore
+	MetricsInterval     time.Duration
+	GCInterval          time.Duration
+	MaxMessageAge       time.Duration
+}
+
+// LoggingConfig holds logging configuration
+type LoggingConfig struct {
+	Level      string // debug, info, warn, error
+	Format     string // json, text
+	Output     string // stdout, file
+	FilePath   string
+	MaxSize    int // megabytes
+	MaxBackups int
+	MaxAge     int // days
+	Compress   bool
+}
+
+// MetricsConfig holds metrics collection configuration
+type MetricsConfig struct {
+	Enabled         bool
+	CollectInterval time.Duration
+	FlushInterval   time.Duration
+	RetentionPeriod time.Duration
+	BatchSize       int
+}
+
+// Load loads configuration from environment variables with defaults
+func Load() (*Config, error) {
+	config := &Config{
+		Server: ServerConfig{
+			Port:         getEnv("SERVER_PORT", "8080"),
+			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
+			ReadTimeout:  getDurationEnv("SERVER_READ_TIMEOUT", 30*time.Second),
+			WriteTimeout: getDurationEnv("SERVER_WRITE_TIMEOUT", 30*time.Second),
+			IdleTimeout:  getDurationEnv("SERVER_IDLE_TIMEOUT", 60*time.Second),
+			Mode:         getEnv("GIN_MODE", "debug"),
+		},
+		Database: DatabaseConfig{
+			Host:            getEnv("DB_HOST", "localhost"),
+			Port:            getEnv("DB_PORT", "5432"),
+			User:            getEnv("DB_USER", "postgres"),
+			Password:        getEnv("DB_PASSWORD", "postgres"),
+			DBName:          getEnv("DB_NAME", "actor_observability"),
+			SSLMode:         getEnv("DB_SSLMODE", "disable"),
+			MaxOpenConns:    getIntEnv("DB_MAX_OPEN_CONNS", 25),
+			MaxIdleConns:    getIntEnv("DB_MAX_IDLE_CONNS", 5),
+			ConnMaxLifetime: getDurationEnv("DB_CONN_MAX_LIFETIME", 5*time.Minute),
+			ConnMaxIdleTime: getDurationEnv("DB_CONN_MAX_IDLE_TIME", 5*time.Minute),
+		},
+		Redis: RedisConfig{
+			Host:         getEnv("REDIS_HOST", "localhost"),
+			Port:         getEnv("REDIS_PORT", "6379"),
+			Password:     getEnv("REDIS_PASSWORD", ""),
+			DB:           getIntEnv("REDIS_DB", 0),
+			PoolSize:     getIntEnv("REDIS_POOL_SIZE", 10),
+			MinIdleConns: getIntEnv("REDIS_MIN_IDLE_CONNS", 2),
+			DialTimeout:  getDurationEnv("REDIS_DIAL_TIMEOUT", 5*time.Second),
+			ReadTimeout:  getDurationEnv("REDIS_READ_TIMEOUT", 3*time.Second),
+			WriteTimeout: getDurationEnv("REDIS_WRITE_TIMEOUT", 3*time.Second),
+		},
+		Actor: ActorConfig{
+			MaxActors:           getIntEnv("ACTOR_MAX_ACTORS", 10000),
+			MessageBufferSize:   getIntEnv("ACTOR_MESSAGE_BUFFER_SIZE", 100),
+			SupervisionStrategy: getEnv("ACTOR_SUPERVISION_STRATEGY", "restart"),
+			MetricsInterval:     getDurationEnv("ACTOR_METRICS_INTERVAL", 10*time.Second),
+			GCInterval:          getDurationEnv("ACTOR_GC_INTERVAL", 5*time.Minute),
+			MaxMessageAge:       getDurationEnv("ACTOR_MAX_MESSAGE_AGE", 1*time.Hour),
+		},
+		Logging: LoggingConfig{
+			Level:      getEnv("LOG_LEVEL", "info"),
+			Format:     getEnv("LOG_FORMAT", "json"),
+			Output:     getEnv("LOG_OUTPUT", "stdout"),
+			FilePath:   getEnv("LOG_FILE_PATH", "./logs/app.log"),
+			MaxSize:    getIntEnv("LOG_MAX_SIZE", 100),
+			MaxBackups: getIntEnv("LOG_MAX_BACKUPS", 3),
+			MaxAge:     getIntEnv("LOG_MAX_AGE", 28),
+			Compress:   getBoolEnv("LOG_COMPRESS", true),
+		},
+		Metrics: MetricsConfig{
+			Enabled:         getBoolEnv("METRICS_ENABLED", true),
+			CollectInterval: getDurationEnv("METRICS_COLLECT_INTERVAL", 30*time.Second),
+			FlushInterval:   getDurationEnv("METRICS_FLUSH_INTERVAL", 5*time.Minute),
+			RetentionPeriod: getDurationEnv("METRICS_RETENTION_PERIOD", 7*24*time.Hour),
+			BatchSize:       getIntEnv("METRICS_BATCH_SIZE", 100),
+		},
+	}
+
+	// Validate configuration
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	return config, nil
+}
+
+// Validate validates the configuration
+func (c *Config) Validate() error {
+	// Validate server config
+	if c.Server.Port == "" {
+		return fmt.Errorf("server port is required")
+	}
+	if c.Server.Host == "" {
+		return fmt.Errorf("server host is required")
+	}
+	if c.Server.Mode != "debug" && c.Server.Mode != "release" && c.Server.Mode != "test" {
+		return fmt.Errorf("invalid server mode: %s", c.Server.Mode)
+	}
+
+	// Validate database config
+	if c.Database.Host == "" {
+		return fmt.Errorf("database host is required")
+	}
+	if c.Database.Port == "" {
+		return fmt.Errorf("database port is required")
+	}
+	if c.Database.User == "" {
+		return fmt.Errorf("database user is required")
+	}
+	if c.Database.DBName == "" {
+		return fmt.Errorf("database name is required")
+	}
+	if c.Database.MaxOpenConns <= 0 {
+		return fmt.Errorf("database max open connections must be positive")
+	}
+	if c.Database.MaxIdleConns <= 0 {
+		return fmt.Errorf("database max idle connections must be positive")
+	}
+
+	// Validate Redis config
+	if c.Redis.Host == "" {
+		return fmt.Errorf("redis host is required")
+	}
+	if c.Redis.Port == "" {
+		return fmt.Errorf("redis port is required")
+	}
+	if c.Redis.DB < 0 || c.Redis.DB > 15 {
+		return fmt.Errorf("redis database must be between 0 and 15")
+	}
+	if c.Redis.PoolSize <= 0 {
+		return fmt.Errorf("redis pool size must be positive")
+	}
+
+	// Validate actor config
+	if c.Actor.MaxActors <= 0 {
+		return fmt.Errorf("actor max actors must be positive")
+	}
+	if c.Actor.MessageBufferSize <= 0 {
+		return fmt.Errorf("actor message buffer size must be positive")
+	}
+	if c.Actor.SupervisionStrategy != "restart" && c.Actor.SupervisionStrategy != "stop" && c.Actor.SupervisionStrategy != "ignore" {
+		return fmt.Errorf("invalid actor supervision strategy: %s", c.Actor.SupervisionStrategy)
+	}
+
+	// Validate logging config
+	if c.Logging.Level != "debug" && c.Logging.Level != "info" && c.Logging.Level != "warn" && c.Logging.Level != "error" {
+		return fmt.Errorf("invalid log level: %s", c.Logging.Level)
+	}
+	if c.Logging.Format != "json" && c.Logging.Format != "text" {
+		return fmt.Errorf("invalid log format: %s", c.Logging.Format)
+	}
+	if c.Logging.Output != "stdout" && c.Logging.Output != "file" {
+		return fmt.Errorf("invalid log output: %s", c.Logging.Output)
+	}
+	if c.Logging.Output == "file" && c.Logging.FilePath == "" {
+		return fmt.Errorf("log file path is required when output is file")
+	}
+
+	// Validate metrics config
+	if c.Metrics.BatchSize <= 0 {
+		return fmt.Errorf("metrics batch size must be positive")
+	}
+
+	return nil
+}
+
+// GetDSN returns the PostgreSQL data source name
+func (c *Config) GetDSN() string {
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		c.Database.Host,
+		c.Database.Port,
+		c.Database.User,
+		c.Database.Password,
+		c.Database.DBName,
+		c.Database.SSLMode,
+	)
+}
+
+// GetRedisAddr returns the Redis address
+func (c *Config) GetRedisAddr() string {
+	return fmt.Sprintf("%s:%s", c.Redis.Host, c.Redis.Port)
+}
+
+// GetServerAddr returns the server address
+func (c *Config) GetServerAddr() string {
+	return fmt.Sprintf("%s:%s", c.Server.Host, c.Server.Port)
+}
+
+// Helper functions for environment variable parsing
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func getIntEnv(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+	}
+	return defaultValue
+}
+
+func getBoolEnv(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
+		}
+	}
+	return defaultValue
+}
+
+func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
+	if value := os.Getenv(key); value != "" {
+		if duration, err := time.ParseDuration(value); err == nil {
+			return duration
+		}
+	}
+	return defaultValue
+}
+
+// Development returns a configuration suitable for development
+func Development() *Config {
+	return &Config{
+		Server: ServerConfig{
+			Port:         "8080",
+			Host:         "localhost",
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 30 * time.Second,
+			IdleTimeout:  60 * time.Second,
+			Mode:         "debug",
+		},
+		Database: DatabaseConfig{
+			Host:            "localhost",
+			Port:            "5432",
+			User:            "postgres",
+			Password:        "postgres",
+			DBName:          "actor_observability",
+			SSLMode:         "disable",
+			MaxOpenConns:    10,
+			MaxIdleConns:    2,
+			ConnMaxLifetime: 5 * time.Minute,
+			ConnMaxIdleTime: 5 * time.Minute,
+		},
+		Redis: RedisConfig{
+			Host:         "localhost",
+			Port:         "6379",
+			Password:     "",
+			DB:           0,
+			PoolSize:     5,
+			MinIdleConns: 1,
+			DialTimeout:  5 * time.Second,
+			ReadTimeout:  3 * time.Second,
+			WriteTimeout: 3 * time.Second,
+		},
+		Actor: ActorConfig{
+			MaxActors:           1000,
+			MessageBufferSize:   50,
+			SupervisionStrategy: "restart",
+			MetricsInterval:     10 * time.Second,
+			GCInterval:          2 * time.Minute,
+			MaxMessageAge:       30 * time.Minute,
+		},
+		Logging: LoggingConfig{
+			Level:      "debug",
+			Format:     "text",
+			Output:     "stdout",
+			FilePath:   "",
+			MaxSize:    50,
+			MaxBackups: 2,
+			MaxAge:     7,
+			Compress:   false,
+		},
+		Metrics: MetricsConfig{
+			Enabled:         true,
+			CollectInterval: 15 * time.Second,
+			FlushInterval:   2 * time.Minute,
+			RetentionPeriod: 24 * time.Hour,
+			BatchSize:       50,
+		},
+	}
+}
+
+// Production returns a configuration suitable for production
+func Production() *Config {
+	return &Config{
+		Server: ServerConfig{
+			Port:         "8080",
+			Host:         "0.0.0.0",
+			ReadTimeout:  30 * time.Second,
+			WriteTimeout: 30 * time.Second,
+			IdleTimeout:  120 * time.Second,
+			Mode:         "release",
+		},
+		Database: DatabaseConfig{
+			Host:            "localhost",
+			Port:            "5432",
+			User:            "postgres",
+			Password:        "postgres",
+			DBName:          "actor_observability",
+			SSLMode:         "require",
+			MaxOpenConns:    50,
+			MaxIdleConns:    10,
+			ConnMaxLifetime: 10 * time.Minute,
+			ConnMaxIdleTime: 10 * time.Minute,
+		},
+		Redis: RedisConfig{
+			Host:         "localhost",
+			Port:         "6379",
+			Password:     "",
+			DB:           0,
+			PoolSize:     20,
+			MinIdleConns: 5,
+			DialTimeout:  5 * time.Second,
+			ReadTimeout:  3 * time.Second,
+			WriteTimeout: 3 * time.Second,
+		},
+		Actor: ActorConfig{
+			MaxActors:           50000,
+			MessageBufferSize:   200,
+			SupervisionStrategy: "restart",
+			MetricsInterval:     30 * time.Second,
+			GCInterval:          10 * time.Minute,
+			MaxMessageAge:       2 * time.Hour,
+		},
+		Logging: LoggingConfig{
+			Level:      "info",
+			Format:     "json",
+			Output:     "file",
+			FilePath:   "/var/log/actor-observability/app.log",
+			MaxSize:    200,
+			MaxBackups: 10,
+			MaxAge:     30,
+			Compress:   true,
+		},
+		Metrics: MetricsConfig{
+			Enabled:         true,
+			CollectInterval: 60 * time.Second,
+			FlushInterval:   10 * time.Minute,
+			RetentionPeriod: 30 * 24 * time.Hour,
+			BatchSize:       200,
+		},
+	}
+}
