@@ -136,7 +136,7 @@ dev:
 # Install development tools
 install-dev-tools:
 	@echo "Installing development tools..."
-	$(GOCMD) install github.com/cosmtrek/air@latest
+	$(GOCMD) install github.com/air-verse/air@latest
 	$(GOCMD) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	$(GOCMD) install github.com/swaggo/swag/cmd/swag@latest
 
