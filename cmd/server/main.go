@@ -103,14 +103,14 @@ func main() {
 
 	// Initialize observability collector
 	metricsCollector := observability.NewMetricsCollector(
-		nil, // TODO: Add GORM DB if needed
+		db,
 		redisClient.Client,
 		pkgCfg,
 	)
 
 	// Initialize traditional monitor
 	traditionalMonitor := traditional.NewTraditionalMonitor(
-		nil, // TODO: Add GORM DB if needed
+		db,
 		redisClient.Client,
 		cfg,
 	)
@@ -153,11 +153,11 @@ func main() {
 
 	// Create HTTP server
 	server := &http.Server{
-		Addr:           fmt.Sprintf(":%d", cfg.Server.Port),
+		Addr:           fmt.Sprintf(":%s", cfg.Server.Port),
 		Handler:        ginEngine,
-		ReadTimeout:    time.Duration(cfg.Server.ReadTimeout) * time.Second,
-		WriteTimeout:   time.Duration(cfg.Server.WriteTimeout) * time.Second,
-		IdleTimeout:    time.Duration(cfg.Server.IdleTimeout) * time.Second,
+		ReadTimeout:    cfg.Server.ReadTimeout,
+		WriteTimeout:   cfg.Server.WriteTimeout,
+		IdleTimeout:    cfg.Server.IdleTimeout,
 		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
 

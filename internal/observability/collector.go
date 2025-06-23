@@ -8,18 +8,18 @@ import (
 	"time"
 
 	"actor-model-observability/internal/actor"
+	"actor-model-observability/internal/database"
 	"actor-model-observability/internal/models"
 	"actor-model-observability/pkg/config"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
-	gorm "gorm.io/gorm"
 )
 
 // MetricsCollector collects and stores observability data
 type MetricsCollector struct {
-	db          *gorm.DB
+	db          *database.PostgresDB
 	redis       *redis.Client
 	logger      *logrus.Entry
 	ctx         context.Context
@@ -44,7 +44,7 @@ type MetricsCollector struct {
 }
 
 // NewMetricsCollector creates a new metrics collector
-func NewMetricsCollector(db *gorm.DB, redis *redis.Client, cfg *config.Config) *MetricsCollector {
+func NewMetricsCollector(db *database.PostgresDB, redis *redis.Client, cfg *config.Config) *MetricsCollector {
 	return &MetricsCollector{
 		db:                 db,
 		redis:              redis,
@@ -335,10 +335,12 @@ func (mc *MetricsCollector) flushActorMetrics() {
 		instances = append(instances, instance)
 	}
 
-	if err := mc.db.CreateInBatches(instances, mc.batchSize).Error; err != nil {
-		mc.logger.WithError(err).Error("Failed to flush actor metrics")
-	} else {
-		mc.logger.WithField("count", len(instances)).Debug("Actor metrics flushed")
+	if len(instances) > 0 {
+		if err := mc.insertActorInstancesBatch(instances); err != nil {
+			mc.logger.WithError(err).Error("Failed to flush actor metrics")
+		} else {
+			mc.logger.WithField("count", len(instances)).Debug("Actor metrics flushed")
+		}
 	}
 
 	// Clear the map
@@ -347,10 +349,12 @@ func (mc *MetricsCollector) flushActorMetrics() {
 
 // flushMessageMetrics flushes message metrics to database
 func (mc *MetricsCollector) flushMessageMetrics() {
-	if err := mc.db.CreateInBatches(mc.messageMetrics, mc.batchSize).Error; err != nil {
-		mc.logger.WithError(err).Error("Failed to flush message metrics")
-	} else {
-		mc.logger.WithField("count", len(mc.messageMetrics)).Debug("Message metrics flushed")
+	if len(mc.messageMetrics) > 0 {
+		if err := mc.insertMessagesBatch(mc.messageMetrics); err != nil {
+			mc.logger.WithError(err).Error("Failed to flush message metrics")
+		} else {
+			mc.logger.WithField("count", len(mc.messageMetrics)).Debug("Message metrics flushed")
+		}
 	}
 
 	// Clear the slice
@@ -359,10 +363,12 @@ func (mc *MetricsCollector) flushMessageMetrics() {
 
 // flushSystemMetrics flushes system metrics to database
 func (mc *MetricsCollector) flushSystemMetrics() {
-	if err := mc.db.CreateInBatches(mc.systemMetrics, mc.batchSize).Error; err != nil {
-		mc.logger.WithError(err).Error("Failed to flush system metrics")
-	} else {
-		mc.logger.WithField("count", len(mc.systemMetrics)).Debug("System metrics flushed")
+	if len(mc.systemMetrics) > 0 {
+		if err := mc.insertSystemMetricsBatch(mc.systemMetrics); err != nil {
+			mc.logger.WithError(err).Error("Failed to flush system metrics")
+		} else {
+			mc.logger.WithField("count", len(mc.systemMetrics)).Debug("System metrics flushed")
+		}
 	}
 
 	// Clear the slice
@@ -371,10 +377,12 @@ func (mc *MetricsCollector) flushSystemMetrics() {
 
 // flushTraces flushes traces to database
 func (mc *MetricsCollector) flushTraces() {
-	if err := mc.db.CreateInBatches(mc.traces, mc.batchSize).Error; err != nil {
-		mc.logger.WithError(err).Error("Failed to flush traces")
-	} else {
-		mc.logger.WithField("count", len(mc.traces)).Debug("Traces flushed")
+	if len(mc.traces) > 0 {
+		if err := mc.insertTracesBatch(mc.traces); err != nil {
+			mc.logger.WithError(err).Error("Failed to flush traces")
+		} else {
+			mc.logger.WithField("count", len(mc.traces)).Debug("Traces flushed")
+		}
 	}
 
 	// Clear the slice
@@ -383,10 +391,12 @@ func (mc *MetricsCollector) flushTraces() {
 
 // flushEventLogs flushes event logs to database
 func (mc *MetricsCollector) flushEventLogs() {
-	if err := mc.db.CreateInBatches(mc.eventLogs, mc.batchSize).Error; err != nil {
-		mc.logger.WithError(err).Error("Failed to flush event logs")
-	} else {
-		mc.logger.WithField("count", len(mc.eventLogs)).Debug("Event logs flushed")
+	if len(mc.eventLogs) > 0 {
+		if err := mc.insertEventLogsBatch(mc.eventLogs); err != nil {
+			mc.logger.WithError(err).Error("Failed to flush event logs")
+		} else {
+			mc.logger.WithField("count", len(mc.eventLogs)).Debug("Event logs flushed")
+		}
 	}
 
 	// Clear the slice
@@ -467,4 +477,124 @@ func (mc *MetricsCollector) GetRealtimeMetrics() (map[string]interface{}, error)
 	}
 
 	return result, nil
+}
+
+// insertActorInstancesBatch inserts actor instances in batch using standard SQL
+func (mc *MetricsCollector) insertActorInstancesBatch(instances []*models.ActorInstance) error {
+	if len(instances) == 0 {
+		return nil
+	}
+
+	query := `INSERT INTO actor_instances (id, actor_type, actor_id, entity_id, status, last_heartbeat, created_at, updated_at) VALUES `
+	placeholders := make([]string, len(instances))
+	values := make([]interface{}, 0, len(instances)*8)
+
+	for i, instance := range instances {
+		placeholders[i] = fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)", i*8+1, i*8+2, i*8+3, i*8+4, i*8+5, i*8+6, i*8+7, i*8+8)
+		values = append(values, instance.ID, instance.ActorType, instance.ActorID, instance.EntityID, instance.Status, instance.LastHeartbeat, instance.CreatedAt, instance.UpdatedAt)
+	}
+
+	query += placeholders[0]
+	for i := 1; i < len(placeholders); i++ {
+		query += ", " + placeholders[i]
+	}
+
+	_, err := mc.db.Exec(query, values...)
+	return err
+}
+
+// insertEventLogsBatch inserts event logs in batch using standard SQL
+func (mc *MetricsCollector) insertEventLogsBatch(logs []*models.EventLog) error {
+	if len(logs) == 0 {
+		return nil
+	}
+
+	query := `INSERT INTO event_logs (id, trace_id, event_type, event_category, actor_type, actor_id, entity_type, entity_id, event_data, severity, message, timestamp, created_at) VALUES `
+	placeholders := make([]string, len(logs))
+	values := make([]interface{}, 0, len(logs)*13)
+
+	for i, log := range logs {
+		placeholders[i] = fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)", i*13+1, i*13+2, i*13+3, i*13+4, i*13+5, i*13+6, i*13+7, i*13+8, i*13+9, i*13+10, i*13+11, i*13+12, i*13+13)
+		values = append(values, log.ID, log.TraceID, log.EventType, log.EventCategory, log.ActorType, log.ActorID, log.EntityType, log.EntityID, log.EventData, log.Severity, log.Message, log.Timestamp, log.CreatedAt)
+	}
+
+	query += placeholders[0]
+	for i := 1; i < len(placeholders); i++ {
+		query += ", " + placeholders[i]
+	}
+
+	_, err := mc.db.Exec(query, values...)
+	return err
+}
+
+// insertTracesBatch inserts distributed traces in batch using standard SQL
+func (mc *MetricsCollector) insertTracesBatch(traces []*models.DistributedTrace) error {
+	if len(traces) == 0 {
+		return nil
+	}
+
+	query := `INSERT INTO distributed_traces (id, trace_id, span_id, parent_span_id, operation_name, actor_type, actor_id, start_time, end_time, duration_ms, status, tags, logs, created_at) VALUES `
+	placeholders := make([]string, len(traces))
+	values := make([]interface{}, 0, len(traces)*14)
+
+	for i, trace := range traces {
+		placeholders[i] = fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)", i*14+1, i*14+2, i*14+3, i*14+4, i*14+5, i*14+6, i*14+7, i*14+8, i*14+9, i*14+10, i*14+11, i*14+12, i*14+13, i*14+14)
+		values = append(values, trace.ID, trace.TraceID, trace.SpanID, trace.ParentSpanID, trace.OperationName, trace.ActorType, trace.ActorID, trace.StartTime, trace.EndTime, trace.DurationMs, trace.Status, trace.Tags, trace.Logs, trace.CreatedAt)
+	}
+
+	query += placeholders[0]
+	for i := 1; i < len(placeholders); i++ {
+		query += ", " + placeholders[i]
+	}
+
+	_, err := mc.db.Exec(query, values...)
+	return err
+}
+
+// insertSystemMetricsBatch inserts system metrics in batch using standard SQL
+func (mc *MetricsCollector) insertSystemMetricsBatch(metrics []*models.SystemMetric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	query := `INSERT INTO system_metrics (id, metric_name, metric_type, metric_value, labels, actor_type, actor_id, timestamp, created_at) VALUES `
+	placeholders := make([]string, len(metrics))
+	values := make([]interface{}, 0, len(metrics)*9)
+
+	for i, metric := range metrics {
+		placeholders[i] = fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)", i*9+1, i*9+2, i*9+3, i*9+4, i*9+5, i*9+6, i*9+7, i*9+8, i*9+9)
+		values = append(values, metric.ID, metric.MetricName, metric.MetricType, metric.MetricValue, metric.Labels, metric.ActorType, metric.ActorID, metric.Timestamp, metric.CreatedAt)
+	}
+
+	query += placeholders[0]
+	for i := 1; i < len(placeholders); i++ {
+		query += ", " + placeholders[i]
+	}
+
+	_, err := mc.db.Exec(query, values...)
+	return err
+}
+
+// insertMessagesBatch inserts actor messages in batch using standard SQL
+func (mc *MetricsCollector) insertMessagesBatch(messages []*models.ActorMessage) error {
+	if len(messages) == 0 {
+		return nil
+	}
+
+	query := `INSERT INTO actor_messages (id, trace_id, span_id, parent_span_id, sender_actor_type, sender_actor_id, receiver_actor_type, receiver_actor_id, message_type, message_payload, status, sent_at, received_at, processed_at, processing_duration_ms, error_message, created_at) VALUES `
+	placeholders := make([]string, len(messages))
+	values := make([]interface{}, 0, len(messages)*17)
+
+	for i, message := range messages {
+		placeholders[i] = fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d, $%d)", i*17+1, i*17+2, i*17+3, i*17+4, i*17+5, i*17+6, i*17+7, i*17+8, i*17+9, i*17+10, i*17+11, i*17+12, i*17+13, i*17+14, i*17+15, i*17+16, i*17+17)
+		values = append(values, message.ID, message.TraceID, message.SpanID, message.ParentSpanID, message.SenderActorType, message.SenderActorID, message.ReceiverActorType, message.ReceiverActorID, message.MessageType, message.MessagePayload, message.Status, message.SentAt, message.ReceivedAt, message.ProcessedAt, message.ProcessingDurationMs, message.ErrorMessage, message.CreatedAt)
+	}
+
+	query += placeholders[0]
+	for i := 1; i < len(placeholders); i++ {
+		query += ", " + placeholders[i]
+	}
+
+	_, err := mc.db.Exec(query, values...)
+	return err
 }

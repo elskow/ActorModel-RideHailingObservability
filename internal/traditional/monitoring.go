@@ -8,16 +8,16 @@ import (
 	"time"
 
 	"actor-model-observability/internal/config"
+	"actor-model-observability/internal/database"
 	"actor-model-observability/internal/models"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/sirupsen/logrus"
-	gorm "gorm.io/gorm"
 )
 
 // TraditionalMonitor implements traditional centralized monitoring
 type TraditionalMonitor struct {
-	db          *gorm.DB
+	db          *database.PostgresDB
 	redis       *redis.Client
 	logger      *logrus.Entry
 	ctx         context.Context
@@ -67,7 +67,7 @@ type ServiceHealth struct {
 }
 
 // NewTraditionalMonitor creates a new traditional monitoring system
-func NewTraditionalMonitor(db *gorm.DB, redis *redis.Client, cfg *config.Config) *TraditionalMonitor {
+func NewTraditionalMonitor(db *database.PostgresDB, redis *redis.Client, cfg *config.Config) *TraditionalMonitor {
 	return &TraditionalMonitor{
 		db:                 db,
 		redis:              redis,
@@ -386,11 +386,16 @@ func (tm *TraditionalMonitor) performHealthChecks() {
 
 // checkDatabaseHealth checks database connectivity
 func (tm *TraditionalMonitor) checkDatabaseHealth() bool {
+	// Skip database check if db is nil
+	if tm.db == nil {
+		return false
+	}
+
 	ctx, cancel := context.WithTimeout(tm.ctx, 5*time.Second)
 	defer cancel()
 
 	var result int
-	err := tm.db.WithContext(ctx).Raw("SELECT 1").Scan(&result).Error
+	err := tm.db.QueryRowContext(ctx, "SELECT 1").Scan(&result)
 	return err == nil
 }
 
@@ -472,14 +477,40 @@ func (tm *TraditionalMonitor) flushTraditionalMetrics() {
 		dbMetrics = append(dbMetrics, dbMetric)
 	}
 
-	if err := tm.db.CreateInBatches(dbMetrics, 100).Error; err != nil {
-		tm.logger.WithError(err).Error("Failed to flush traditional metrics")
-	} else {
-		tm.logger.WithField("count", len(dbMetrics)).Debug("Traditional metrics flushed")
+	if len(dbMetrics) > 0 {
+		if err := tm.insertMetricsBatch(dbMetrics); err != nil {
+			tm.logger.WithError(err).Error("Failed to flush traditional metrics")
+		} else {
+			tm.logger.WithField("count", len(dbMetrics)).Debug("Traditional metrics flushed")
+		}
 	}
 
 	// Clear metrics
 	tm.metrics = make(map[string]*TraditionalMetric)
+}
+
+// insertMetricsBatch inserts metrics in batches using standard SQL
+func (tm *TraditionalMonitor) insertMetricsBatch(metrics []*models.TraditionalMetric) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+	
+	query := `INSERT INTO traditional_metrics (metric_name, metric_type, metric_value, labels, service_name, instance_id, timestamp) VALUES `
+	values := make([]interface{}, 0, len(metrics)*7)
+	placeholders := make([]string, 0, len(metrics))
+	
+	for i, metric := range metrics {
+		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", i*7+1, i*7+2, i*7+3, i*7+4, i*7+5, i*7+6, i*7+7))
+		values = append(values, metric.MetricName, metric.MetricType, metric.MetricValue, metric.Labels, metric.ServiceName, metric.InstanceID, metric.Timestamp)
+	}
+	
+	query += placeholders[0]
+	for i := 1; i < len(placeholders); i++ {
+		query += ", " + placeholders[i]
+	}
+	
+	_, err := tm.db.Exec(query, values...)
+	return err
 }
 
 // flushLogs flushes logs to database
@@ -491,14 +522,38 @@ func (tm *TraditionalMonitor) flushLogs() {
 		return
 	}
 
-	if err := tm.db.CreateInBatches(tm.logs, 100).Error; err != nil {
-		tm.logger.WithError(err).Error("Failed to flush traditional logs")
-	} else {
-		tm.logger.WithField("count", len(tm.logs)).Debug("Traditional logs flushed")
+	if len(tm.logs) > 0 {
+		if err := tm.insertLogsBatch(tm.logs); err != nil {
+			tm.logger.WithError(err).Error("Failed to flush traditional logs")
+		} else {
+			tm.logger.WithField("count", len(tm.logs)).Debug("Traditional logs flushed")
+		}
 	}
 
-	// Clear logs
-	tm.logs = tm.logs[:0]
+}
+
+// insertLogsBatch inserts logs in batches using standard SQL
+func (tm *TraditionalMonitor) insertLogsBatch(logs []*models.TraditionalLog) error {
+	if len(logs) == 0 {
+		return nil
+	}
+	
+	query := `INSERT INTO traditional_logs (level, message, service_name, instance_id, fields, timestamp) VALUES `
+	values := make([]interface{}, 0, len(logs)*6)
+	placeholders := make([]string, 0, len(logs))
+	
+	for i, log := range logs {
+		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d)", i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6))
+		values = append(values, log.Level, log.Message, log.ServiceName, log.InstanceID, log.Fields, log.Timestamp)
+	}
+	
+	query += placeholders[0]
+	for i := 1; i < len(placeholders); i++ {
+		query += ", " + placeholders[i]
+	}
+	
+	_, err := tm.db.Exec(query, values...)
+	return err
 }
 
 // storeMetricInRedis stores metric in Redis for real-time access
