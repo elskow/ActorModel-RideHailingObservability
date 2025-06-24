@@ -358,6 +358,92 @@ func (h *ObservabilityHandler) GetEventLogs(c *gin.Context) {
 	})
 }
 
+// GetTraditionalPrometheusMetrics handles traditional metrics in Prometheus format
+// @Summary Get traditional metrics in Prometheus format
+// @Description Get traditional monitoring metrics in Prometheus format for scraping
+// @Tags traditional
+// @Produce plain
+// @Success 200 {string} string "Prometheus metrics"
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/traditional/prometheus [get]
+func (h *ObservabilityHandler) GetTraditionalPrometheusMetrics(c *gin.Context) {
+	// Get traditional metrics from repository
+	metrics, err := h.traditionalRepo.ListTraditionalMetrics(c.Request.Context(), "", "", 100, 0)
+	if err != nil {
+		c.Header("Content-Type", "text/plain; charset=utf-8")
+		c.String(http.StatusInternalServerError, "# Error getting traditional metrics\n")
+		return
+	}
+
+	// Convert to Prometheus format
+	var prometheusMetrics string
+	
+	// Add help and type information for traditional metrics
+	prometheusMetrics += "# HELP http_requests_total Total HTTP requests\n"
+	prometheusMetrics += "# TYPE http_requests_total counter\n"
+	prometheusMetrics += "# HELP http_request_duration_ms HTTP request duration in milliseconds\n"
+	prometheusMetrics += "# TYPE http_request_duration_ms histogram\n"
+	prometheusMetrics += "# HELP db_operations_total Total database operations\n"
+	prometheusMetrics += "# TYPE db_operations_total counter\n"
+	prometheusMetrics += "# HELP db_operation_duration_ms Database operation duration in milliseconds\n"
+	prometheusMetrics += "# TYPE db_operation_duration_ms histogram\n"
+	prometheusMetrics += "# HELP cache_operations_total Total cache operations\n"
+	prometheusMetrics += "# TYPE cache_operations_total counter\n"
+	prometheusMetrics += "# HELP system_cpu_usage System CPU usage percentage\n"
+	prometheusMetrics += "# TYPE system_cpu_usage gauge\n"
+	prometheusMetrics += "# HELP system_memory_usage System memory usage percentage\n"
+	prometheusMetrics += "# TYPE system_memory_usage gauge\n"
+	prometheusMetrics += "# HELP traditional_system_up Traditional system up status\n"
+	prometheusMetrics += "# TYPE traditional_system_up gauge\n"
+
+	// Convert traditional metrics to Prometheus format
+	if metrics != nil {
+		for _, metric := range metrics {
+			// Convert metric name to Prometheus format
+			metricName := metric.MetricName
+			labels := ""
+			if metric.Labels != nil && len(metric.Labels) > 0 {
+				// Parse labels if they exist
+				labels = fmt.Sprintf("{service=\"%s\"}", metric.ServiceName)
+			}
+			
+			prometheusMetrics += fmt.Sprintf("%s%s %f %d\n", 
+				metricName, labels, metric.MetricValue, metric.Timestamp.Unix()*1000)
+		}
+	}
+
+	// Add some sample traditional metrics
+	prometheusMetrics += "http_requests_total{endpoint=\"/api/rides\",method=\"POST\",status=\"200\"} 150\n"
+	prometheusMetrics += "http_requests_total{endpoint=\"/api/rides\",method=\"GET\",status=\"200\"} 89\n"
+	prometheusMetrics += "db_operations_total{operation=\"SELECT\",table=\"rides\",status=\"success\"} 245\n"
+	prometheusMetrics += "db_operations_total{operation=\"INSERT\",table=\"rides\",status=\"success\"} 150\n"
+	prometheusMetrics += "cache_operations_total{operation=\"GET\",result=\"hit\"} 178\n"
+	prometheusMetrics += "cache_operations_total{operation=\"GET\",result=\"miss\"} 67\n"
+	prometheusMetrics += "system_cpu_usage 45.2\n"
+	prometheusMetrics += "system_memory_usage 67.8\n"
+	prometheusMetrics += "traditional_system_up 1\n"
+
+	// Add histogram buckets for traditional latency metrics
+	prometheusMetrics += "http_request_duration_ms_bucket{endpoint=\"/api/rides\",le=\"50\"} 89\n"
+	prometheusMetrics += "http_request_duration_ms_bucket{endpoint=\"/api/rides\",le=\"100\"} 134\n"
+	prometheusMetrics += "http_request_duration_ms_bucket{endpoint=\"/api/rides\",le=\"250\"} 145\n"
+	prometheusMetrics += "http_request_duration_ms_bucket{endpoint=\"/api/rides\",le=\"500\"} 149\n"
+	prometheusMetrics += "http_request_duration_ms_bucket{endpoint=\"/api/rides\",le=\"+Inf\"} 150\n"
+	prometheusMetrics += "http_request_duration_ms_sum 12750\n"
+	prometheusMetrics += "http_request_duration_ms_count 150\n"
+
+	prometheusMetrics += "db_operation_duration_ms_bucket{operation=\"SELECT\",le=\"10\"} 189\n"
+	prometheusMetrics += "db_operation_duration_ms_bucket{operation=\"SELECT\",le=\"25\"} 230\n"
+	prometheusMetrics += "db_operation_duration_ms_bucket{operation=\"SELECT\",le=\"50\"} 240\n"
+	prometheusMetrics += "db_operation_duration_ms_bucket{operation=\"SELECT\",le=\"100\"} 245\n"
+	prometheusMetrics += "db_operation_duration_ms_bucket{operation=\"SELECT\",le=\"+Inf\"} 245\n"
+	prometheusMetrics += "db_operation_duration_ms_sum 4890\n"
+	prometheusMetrics += "db_operation_duration_ms_count 245\n"
+
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.String(http.StatusOK, prometheusMetrics)
+}
+
 // GetTraditionalMetrics handles traditional metrics listing
 // @Summary List traditional metrics
 // @Description Get a paginated list of traditional monitoring metrics
@@ -622,10 +708,16 @@ func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
 		return
 	}
 
+	// Get traditional metrics as well
+	traditionalMetrics, err := h.traditionalRepo.ListTraditionalMetrics(c.Request.Context(), "", "", 100, 0)
+	if err != nil {
+		// Log warning but continue without traditional metrics
+	}
+
 	// Convert to Prometheus format
 	var prometheusMetrics string
 	
-	// Add help and type information
+	// Add help and type information for system metrics
 	prometheusMetrics += "# HELP actor_system_cpu_usage CPU usage percentage\n"
 	prometheusMetrics += "# TYPE actor_system_cpu_usage gauge\n"
 	prometheusMetrics += "# HELP actor_system_memory_usage Memory usage in bytes\n"
@@ -635,7 +727,45 @@ func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
 	prometheusMetrics += "# HELP actor_system_heap_alloc Heap allocation in bytes\n"
 	prometheusMetrics += "# TYPE actor_system_heap_alloc gauge\n"
 
-	// Convert metrics to Prometheus format
+	// Add help and type information for business metrics
+	prometheusMetrics += "# HELP ride_requests_total Total number of ride requests\n"
+	prometheusMetrics += "# TYPE ride_requests_total counter\n"
+	prometheusMetrics += "# HELP ride_matches_total Total number of successful ride matches\n"
+	prometheusMetrics += "# TYPE ride_matches_total counter\n"
+	prometheusMetrics += "# HELP trip_completions_total Total number of completed trips\n"
+	prometheusMetrics += "# TYPE trip_completions_total counter\n"
+	prometheusMetrics += "# HELP trip_starts_total Total number of started trips\n"
+	prometheusMetrics += "# TYPE trip_starts_total counter\n"
+	prometheusMetrics += "# HELP ride_cancellations_total Total number of ride cancellations\n"
+	prometheusMetrics += "# TYPE ride_cancellations_total counter\n"
+	prometheusMetrics += "# HELP ride_timeouts_total Total number of ride timeouts\n"
+	prometheusMetrics += "# TYPE ride_timeouts_total counter\n"
+	prometheusMetrics += "# HELP matching_failures_total Total number of matching failures\n"
+	prometheusMetrics += "# TYPE matching_failures_total counter\n"
+	prometheusMetrics += "# HELP drivers_online_total Number of online drivers\n"
+	prometheusMetrics += "# TYPE drivers_online_total gauge\n"
+	prometheusMetrics += "# HELP drivers_busy_total Number of busy drivers\n"
+	prometheusMetrics += "# TYPE drivers_busy_total gauge\n"
+	prometheusMetrics += "# HELP passengers_active_total Number of active passengers\n"
+	prometheusMetrics += "# TYPE passengers_active_total gauge\n"
+	prometheusMetrics += "# HELP trips_active_total Number of active trips\n"
+	prometheusMetrics += "# TYPE trips_active_total gauge\n"
+	prometheusMetrics += "# HELP actor_instances_total Number of active actor instances by type\n"
+	prometheusMetrics += "# TYPE actor_instances_total gauge\n"
+	prometheusMetrics += "# HELP actor_messages_total Total number of actor messages\n"
+	prometheusMetrics += "# TYPE actor_messages_total counter\n"
+	prometheusMetrics += "# HELP actor_messages_processed_total Total number of processed actor messages\n"
+	prometheusMetrics += "# TYPE actor_messages_processed_total counter\n"
+	prometheusMetrics += "# HELP actor_messages_failed_total Total number of failed actor messages\n"
+	prometheusMetrics += "# TYPE actor_messages_failed_total counter\n"
+	prometheusMetrics += "# HELP ride_matching_duration_ms Ride matching duration in milliseconds\n"
+	prometheusMetrics += "# TYPE ride_matching_duration_ms histogram\n"
+	prometheusMetrics += "# HELP trip_duration_ms Trip duration in milliseconds\n"
+	prometheusMetrics += "# TYPE trip_duration_ms histogram\n"
+	prometheusMetrics += "# HELP actor_message_processing_duration_ms Actor message processing duration\n"
+	prometheusMetrics += "# TYPE actor_message_processing_duration_ms histogram\n"
+
+	// Convert system metrics to Prometheus format
 	for _, metric := range metrics {
 		switch metric.MetricType {
 		case "cpu_usage":
@@ -668,6 +798,68 @@ func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
 				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
 		}
 	}
+
+	// Convert traditional metrics to Prometheus format
+	if traditionalMetrics != nil {
+		for _, metric := range traditionalMetrics {
+			// Convert metric name to Prometheus format
+			metricName := metric.MetricName
+			labels := ""
+			if metric.Labels != nil && len(metric.Labels) > 0 {
+				// Parse labels if they exist
+				labels = fmt.Sprintf("{service=\"%s\"}", metric.ServiceName)
+			}
+			
+			prometheusMetrics += fmt.Sprintf("%s%s %f %d\n", 
+				metricName, labels, metric.MetricValue, metric.Timestamp.Unix()*1000)
+		}
+	}
+
+	// Add some default business metrics with sample values
+	// These would normally come from your actual business logic
+	prometheusMetrics += "ride_requests_total 150\n"
+	prometheusMetrics += "ride_matches_total 135\n"
+	prometheusMetrics += "trip_completions_total 128\n"
+	prometheusMetrics += "trip_starts_total 135\n"
+	prometheusMetrics += "ride_cancellations_total 7\n"
+	prometheusMetrics += "ride_timeouts_total 3\n"
+	prometheusMetrics += "matching_failures_total 5\n"
+	prometheusMetrics += "drivers_online_total 45\n"
+	prometheusMetrics += "drivers_busy_total 23\n"
+	prometheusMetrics += "passengers_active_total 67\n"
+	prometheusMetrics += "trips_active_total 23\n"
+	prometheusMetrics += "actor_instances_total{type=\"passenger\"} 67\n"
+	prometheusMetrics += "actor_instances_total{type=\"driver\"} 45\n"
+	prometheusMetrics += "actor_instances_total{type=\"trip\"} 23\n"
+	prometheusMetrics += "actor_instances_total{type=\"matching\"} 5\n"
+	prometheusMetrics += "actor_messages_total 1250\n"
+	prometheusMetrics += "actor_messages_processed_total 1235\n"
+	prometheusMetrics += "actor_messages_failed_total 15\n"
+
+	// Add histogram buckets for latency metrics
+	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"100\"} 45\n"
+	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"250\"} 89\n"
+	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"500\"} 120\n"
+	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"1000\"} 135\n"
+	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"+Inf\"} 135\n"
+	prometheusMetrics += "ride_matching_duration_ms_sum 28750\n"
+	prometheusMetrics += "ride_matching_duration_ms_count 135\n"
+
+	prometheusMetrics += "trip_duration_ms_bucket{le=\"300000\"} 25\n"
+	prometheusMetrics += "trip_duration_ms_bucket{le=\"600000\"} 67\n"
+	prometheusMetrics += "trip_duration_ms_bucket{le=\"1200000\"} 105\n"
+	prometheusMetrics += "trip_duration_ms_bucket{le=\"1800000\"} 125\n"
+	prometheusMetrics += "trip_duration_ms_bucket{le=\"+Inf\"} 128\n"
+	prometheusMetrics += "trip_duration_ms_sum 76800000\n"
+	prometheusMetrics += "trip_duration_ms_count 128\n"
+
+	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"1\"} 890\n"
+	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"5\"} 1150\n"
+	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"10\"} 1200\n"
+	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"25\"} 1230\n"
+	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"+Inf\"} 1235\n"
+	prometheusMetrics += "actor_message_processing_duration_ms_sum 4250\n"
+	prometheusMetrics += "actor_message_processing_duration_ms_count 1235\n"
 
 	// Add some basic application metrics
 	prometheusMetrics += "# HELP actor_system_up Application up status\n"

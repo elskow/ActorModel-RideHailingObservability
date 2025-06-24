@@ -199,6 +199,9 @@ func setupRoutes(router *gin.Engine, cfg *RouterConfig) {
 				healthRoutes.GET("", observabilityHandler.GetServiceHealth)
 				healthRoutes.GET("/:service_name/latest", observabilityHandler.GetLatestServiceHealth)
 			}
+
+			// Prometheus metrics endpoint for traditional monitoring
+			traditionalRoutes.GET("/prometheus", observabilityHandler.GetTraditionalPrometheusMetrics)
 		}
 
 		// System information routes
