@@ -58,11 +58,7 @@ type RedisConfig struct {
 // ActorConfig holds actor system configuration
 type ActorConfig struct {
 	MaxActors           int
-	MessageBufferSize   int
 	SupervisionStrategy string // restart, stop, ignore
-	MetricsInterval     time.Duration
-	GCInterval          time.Duration
-	MaxMessageAge       time.Duration
 }
 
 // LoggingConfig holds logging configuration
@@ -79,16 +75,11 @@ type LoggingConfig struct {
 
 // ObservabilityConfig holds observability configuration
 type ObservabilityConfig struct {
-	TracingEnabled     bool
-	TracingEndpoint    string
-	TracingServiceName string
-	MetricsEnabled     bool
 	MetricsInterval    time.Duration
 }
 
 // MetricsConfig holds metrics collection configuration
 type MetricsConfig struct {
-	Enabled         bool
 	CollectInterval time.Duration
 	FlushInterval   time.Duration
 	RetentionPeriod time.Duration
@@ -131,11 +122,7 @@ func Load() (*Config, error) {
 		},
 		Actor: ActorConfig{
 			MaxActors:           getIntEnv("ACTOR_MAX_ACTORS", 10000),
-			MessageBufferSize:   getIntEnv("ACTOR_MESSAGE_BUFFER_SIZE", 100),
 			SupervisionStrategy: getEnv("ACTOR_SUPERVISION_STRATEGY", "restart"),
-			MetricsInterval:     getDurationEnv("ACTOR_METRICS_INTERVAL", 10*time.Second),
-			GCInterval:          getDurationEnv("ACTOR_GC_INTERVAL", 5*time.Minute),
-			MaxMessageAge:       getDurationEnv("ACTOR_MAX_MESSAGE_AGE", 1*time.Hour),
 		},
 		Logging: LoggingConfig{
 			Level:      getEnv("LOG_LEVEL", "info"),
@@ -148,14 +135,9 @@ func Load() (*Config, error) {
 			Compress:   getBoolEnv("LOG_COMPRESS", true),
 		},
 		Observability: ObservabilityConfig{
-			TracingEnabled:     getBoolEnv("TRACING_ENABLED", true),
-			TracingEndpoint:    getEnv("TRACING_ENDPOINT", "http://localhost:14268/api/traces"),
-			TracingServiceName: getEnv("TRACING_SERVICE_NAME", "actor-observability"),
-			MetricsEnabled:     getBoolEnv("METRICS_ENABLED", true),
 			MetricsInterval:    getDurationEnv("METRICS_INTERVAL", 10*time.Second),
 		},
 		Metrics: MetricsConfig{
-			Enabled:         getBoolEnv("METRICS_ENABLED", true),
 			CollectInterval: getDurationEnv("METRICS_COLLECT_INTERVAL", 30*time.Second),
 			FlushInterval:   getDurationEnv("METRICS_FLUSH_INTERVAL", 5*time.Minute),
 			RetentionPeriod: getDurationEnv("METRICS_RETENTION_PERIOD", 7*24*time.Hour),
@@ -221,9 +203,6 @@ func (c *Config) Validate() error {
 	// Validate actor config
 	if c.Actor.MaxActors <= 0 {
 		return fmt.Errorf("actor max actors must be positive")
-	}
-	if c.Actor.MessageBufferSize <= 0 {
-		return fmt.Errorf("actor message buffer size must be positive")
 	}
 	if c.Actor.SupervisionStrategy != "restart" && c.Actor.SupervisionStrategy != "stop" && c.Actor.SupervisionStrategy != "ignore" {
 		return fmt.Errorf("invalid actor supervision strategy: %s", c.Actor.SupervisionStrategy)
@@ -346,11 +325,7 @@ func Development() *Config {
 		},
 		Actor: ActorConfig{
 			MaxActors:           1000,
-			MessageBufferSize:   50,
 			SupervisionStrategy: "restart",
-			MetricsInterval:     10 * time.Second,
-			GCInterval:          2 * time.Minute,
-			MaxMessageAge:       30 * time.Minute,
 		},
 		Logging: LoggingConfig{
 			Level:      "debug",
@@ -363,9 +338,8 @@ func Development() *Config {
 			Compress:   false,
 		},
 		Metrics: MetricsConfig{
-			Enabled:         true,
-			CollectInterval: 15 * time.Second,
-			FlushInterval:   2 * time.Minute,
+			CollectInterval: 30 * time.Second,
+			FlushInterval:   5 * time.Minute,
 			RetentionPeriod: 24 * time.Hour,
 			BatchSize:       50,
 		},
@@ -408,11 +382,7 @@ func Production() *Config {
 		},
 		Actor: ActorConfig{
 			MaxActors:           50000,
-			MessageBufferSize:   200,
 			SupervisionStrategy: "restart",
-			MetricsInterval:     30 * time.Second,
-			GCInterval:          10 * time.Minute,
-			MaxMessageAge:       2 * time.Hour,
 		},
 		Logging: LoggingConfig{
 			Level:      "info",
@@ -425,11 +395,10 @@ func Production() *Config {
 			Compress:   true,
 		},
 		Metrics: MetricsConfig{
-			Enabled:         true,
 			CollectInterval: 60 * time.Second,
 			FlushInterval:   10 * time.Minute,
-			RetentionPeriod: 30 * 24 * time.Hour,
-			BatchSize:       200,
+			RetentionPeriod: 7 * 24 * time.Hour,
+			BatchSize:       100,
 		},
 	}
 }

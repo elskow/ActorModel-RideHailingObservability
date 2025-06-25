@@ -43,7 +43,8 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 			Mode: "test",
 		},
 		Actor: internalconfig.ActorConfig{
-			MessageBufferSize: 100,
+			MaxActors: 1000,
+			SupervisionStrategy: "restart",
 		},
 	}
 
@@ -54,14 +55,14 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 			Mode: "test",
 		},
 		Actor: internalconfig.ActorConfig{
-			MessageBufferSize: 100,
+			MaxActors: 1000,
+			SupervisionStrategy: "restart",
 		},
 		Metrics: internalconfig.MetricsConfig{
-			Enabled:         true,
-			CollectInterval: time.Second,
-			FlushInterval:   time.Second,
-			RetentionPeriod: time.Hour,
-			BatchSize:       100,
+			CollectInterval: 1 * time.Second,
+			FlushInterval:   5 * time.Second,
+			RetentionPeriod: 1 * time.Hour,
+			BatchSize:       10,
 		},
 	}
 
