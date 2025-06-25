@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math"
 	"net/http"
 	"strconv"
 
@@ -41,6 +42,54 @@ type RequestRideResponse struct {
 	Status        string    `json:"status"`
 	EstimatedFare float64   `json:"estimated_fare"`
 	Message       string    `json:"message"`
+}
+
+// calculateEstimatedFare calculates the estimated fare based on distance and ride type
+func (h *RideHandler) calculateEstimatedFare(pickupLat, pickupLng, destLat, destLng float64, rideType string) float64 {
+	// Calculate distance using Haversine formula
+	distance := calculateDistance(pickupLat, pickupLng, destLat, destLng)
+	
+	// Base fare rates per km
+	var ratePerKm float64
+	switch rideType {
+	case "premium":
+		ratePerKm = 2.5
+	case "standard":
+		fallthrough
+	default:
+		ratePerKm = 1.8
+	}
+	
+	// Base fare + distance-based fare
+	baseFare := 3.0
+	estimatedFare := baseFare + (distance * ratePerKm)
+	
+	// Minimum fare
+	if estimatedFare < 5.0 {
+		estimatedFare = 5.0
+	}
+	
+	return estimatedFare
+}
+
+// calculateDistance calculates the distance between two points using Haversine formula
+func calculateDistance(lat1, lng1, lat2, lng2 float64) float64 {
+	const earthRadius = 6371 // Earth's radius in kilometers
+	
+	// Convert degrees to radians
+	lat1Rad := lat1 * math.Pi / 180
+	lng1Rad := lng1 * math.Pi / 180
+	lat2Rad := lat2 * math.Pi / 180
+	lng2Rad := lng2 * math.Pi / 180
+	
+	// Haversine formula
+	dlat := lat2Rad - lat1Rad
+	dlng := lng2Rad - lng1Rad
+	
+	a := math.Sin(dlat/2)*math.Sin(dlat/2) + math.Cos(lat1Rad)*math.Cos(lat2Rad)*math.Sin(dlng/2)*math.Sin(dlng/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	
+	return earthRadius * c
 }
 
 // CancelRideRequest represents the request payload for ride cancellation
@@ -138,10 +187,17 @@ func (h *RideHandler) RequestRide(c *gin.Context) {
 	}
 
 	// Return successful response
+	// Calculate estimated fare
+	estimatedFare := h.calculateEstimatedFare(
+		req.PickupLat, req.PickupLng,
+		req.DestinationLat, req.DestinationLng,
+		req.RideType,
+	)
+
 	c.JSON(http.StatusCreated, RequestRideResponse{
 		TripID:        trip.ID,
 		Status:        string(trip.Status),
-		EstimatedFare: 0.0, // TODO: Calculate estimated fare
+		EstimatedFare: estimatedFare,
 		Message:       "Ride request created successfully",
 	})
 }

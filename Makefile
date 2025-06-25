@@ -44,17 +44,17 @@ all: clean deps fmt vet test build
 # Build the binary
 build:
 	@echo "Building $(BINARY_NAME)..."
-	$(GOBUILD) -o $(BINARY_NAME) -v $(CMD_DIR)
+	$(GOBUILD) -o $(BINARY_NAME) -v $(CMD_DIR)/server
 
 # Build for Linux
 build-linux:
 	@echo "Building $(BINARY_UNIX)..."
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) -v $(CMD_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) -o $(BINARY_UNIX) -v $(CMD_DIR)/server
 
 # Build for Windows
 build-windows:
 	@echo "Building $(BINARY_WINDOWS)..."
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -o $(BINARY_WINDOWS) -v $(CMD_DIR)
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GOBUILD) -o $(BINARY_WINDOWS) -v $(CMD_DIR)/server
 
 # Build for all platforms
 build-all: build build-linux build-windows

@@ -190,38 +190,81 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	}
 }
 
-// AuthMiddleware creates a middleware for authentication (placeholder)
+// AuthMiddleware creates a middleware for authentication
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Placeholder for authentication logic
-		// In a real application, you would:
-		// 1. Extract token from Authorization header
-		// 2. Validate the token
-		// 3. Set user information in context
-		// 4. Handle authentication errors
-
+		// Extract token from Authorization header
 		authorization := c.GetHeader("Authorization")
 		if authorization == "" {
-			// For now, allow requests without authentication
-			// In production, you might want to require authentication
+			// Allow requests without authentication for development
+			// In production, you might want to require authentication for protected routes
 			c.Next()
 			return
 		}
 
-		// Simple token validation (replace with real implementation)
-		if authorization == "Bearer valid-token" {
-			c.Set("user_id", "user123")
+		// Check if the authorization header has the correct format
+		if len(authorization) < 7 || authorization[:7] != "Bearer " {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "Unauthorized",
+				"message": "Invalid authorization header format. Expected 'Bearer <token>'",
+			})
+			c.Abort()
+			return
+		}
+
+		token := authorization[7:] // Remove "Bearer " prefix
+
+		// Validate token (simplified validation for demo purposes)
+		// In production, you would:
+		// 1. Parse and validate JWT token
+		// 2. Check token expiration
+		// 3. Verify token signature
+		// 4. Extract user claims from token
+		if isValidToken(token) {
+			userID, userType := extractUserInfoFromToken(token)
+			c.Set("user_id", userID)
+			c.Set("user_type", userType)
 			c.Set("authenticated", true)
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "Unauthorized",
-				"message": "Invalid or missing authentication token",
+				"message": "Invalid or expired authentication token",
 			})
 			c.Abort()
 			return
 		}
 
 		c.Next()
+	}
+}
+
+// isValidToken validates the authentication token
+// This is a simplified implementation for demo purposes
+func isValidToken(token string) bool {
+	// In production, implement proper JWT validation
+	// For demo purposes, accept specific test tokens
+	validTokens := map[string]bool{
+		"valid-user-token":      true,
+		"valid-driver-token":    true,
+		"valid-passenger-token": true,
+		"admin-token":           true,
+	}
+	return validTokens[token]
+}
+
+// extractUserInfoFromToken extracts user information from the token
+// This is a simplified implementation for demo purposes
+func extractUserInfoFromToken(token string) (string, string) {
+	// In production, extract this from JWT claims
+	switch token {
+	case "valid-driver-token":
+		return "driver-user-id", "driver"
+	case "valid-passenger-token":
+		return "passenger-user-id", "passenger"
+	case "admin-token":
+		return "admin-user-id", "admin"
+	default:
+		return "user-id", "user"
 	}
 }
 

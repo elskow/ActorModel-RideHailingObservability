@@ -123,9 +123,10 @@ func setupRoutes(router *gin.Engine, cfg *RouterConfig) {
 		userRoutes := v1.Group("/users")
 		{
 			userRoutes.POST("", userHandler.CreateUser)
+			userRoutes.GET("", userHandler.ListUsers)
 			userRoutes.GET("/:id", userHandler.GetUser)
 			userRoutes.PUT("/:id", userHandler.UpdateUser)
-			userRoutes.GET("", userHandler.ListUsers)
+			userRoutes.GET("/:id/driver", userHandler.GetDriver)
 		}
 
 		// Driver-specific routes
@@ -134,16 +135,14 @@ func setupRoutes(router *gin.Engine, cfg *RouterConfig) {
 			driverRoutes.POST("", userHandler.CreateDriver)
 			driverRoutes.PUT("/:id/location", userHandler.UpdateDriverLocation)
 			driverRoutes.PUT("/:id/status", userHandler.UpdateDriverStatus)
-			// TODO: Implement GetOnlineDrivers method
-			// driverRoutes.GET("/online", userHandler.GetOnlineDrivers)
+			driverRoutes.GET("/online", userHandler.GetOnlineDrivers)
 		}
 
 		// Passenger-specific routes
-		// TODO: Implement CreatePassenger method
-		// passengerRoutes := v1.Group("/passengers")
-		// {
-		//	passengerRoutes.POST("", userHandler.CreatePassenger)
-		// }
+		passengerRoutes := v1.Group("/passengers")
+		{
+			passengerRoutes.POST("", userHandler.CreatePassenger)
+		}
 
 		// Ride management routes
 		rideRoutes := v1.Group("/rides")

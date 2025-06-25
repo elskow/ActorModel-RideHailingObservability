@@ -265,14 +265,14 @@ func (h *UserHandler) CreateDriver(c *gin.Context) {
 // @Description Retrieve a user by their ID
 // @Tags users
 // @Produce json
-// @Param user_id path string true "User ID"
+// @Param id path string true "User ID"
 // @Success 200 {object} models.User
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/users/{user_id} [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
-	userIDStr := c.Param("user_id")
+	userIDStr := c.Param("id")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -417,9 +417,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /api/v1/users/{user_id}/driver [get]
+// @Router /api/v1/users/{id}/driver [get]
 func (h *UserHandler) GetDriver(c *gin.Context) {
-	userIDStr := c.Param("user_id")
+	userIDStr := c.Param("id")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -429,7 +429,7 @@ func (h *UserHandler) GetDriver(c *gin.Context) {
 		return
 	}
 
-	_, err = h.driverRepo.GetByUserID(c.Request.Context(), userID.String())
+	driver, err := h.driverRepo.GetByUserID(c.Request.Context(), userID.String())
 	if err != nil {
 		switch err.(type) {
 		case *models.NotFoundError:
@@ -446,7 +446,7 @@ func (h *UserHandler) GetDriver(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Driver location updated successfully"})
+	c.JSON(http.StatusOK, driver)
 }
 
 // UpdateDriverLocation handles driver location updates
@@ -605,4 +605,116 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 		Offset: offset,
 		Total:  int64(len(users)), // Convert to int64
 	})
+}
+
+// GetOnlineDrivers handles retrieving all online drivers
+// @Summary Get online drivers
+// @Description Retrieve all drivers with online status
+// @Tags drivers
+// @Produce json
+// @Success 200 {array} models.Driver
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/drivers/online [get]
+func (h *UserHandler) GetOnlineDrivers(c *gin.Context) {
+	drivers, err := h.driverRepo.GetOnlineDrivers(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error:   "Internal server error",
+			Message: "Failed to get online drivers",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, drivers)
+}
+
+// CreatePassengerRequest represents the request payload for passenger creation
+type CreatePassengerRequest struct {
+	CreateUserRequest
+}
+
+// CreatePassenger handles passenger creation
+// @Summary Create a new passenger
+// @Description Create a new passenger user
+// @Tags passengers
+// @Accept json
+// @Produce json
+// @Param request body CreatePassengerRequest true "Passenger creation details"
+// @Success 201 {object} models.User
+// @Failure 400 {object} ErrorResponse
+// @Failure 409 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /api/v1/passengers [post]
+func (h *UserHandler) CreatePassenger(c *gin.Context) {
+	var req CreatePassengerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error:   "Invalid request payload",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Create user model
+	user := &models.User{
+		ID:       uuid.New(),
+		Email:    req.Email,
+		Phone:    req.Phone,
+		Name:     req.Name,
+		UserType: models.UserTypePassenger,
+	}
+
+	// Validate user
+	if err := user.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Error:   "Validation failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// Create user in database
+	if err := h.userRepo.Create(c.Request.Context(), user); err != nil {
+		switch err.(type) {
+		case *models.ValidationError:
+			c.JSON(http.StatusConflict, ErrorResponse{
+				Error:   "Validation error",
+				Message: err.Error(),
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Error:   "Internal server error",
+				Message: "Failed to create user",
+			})
+		}
+		return
+	}
+
+	// Create passenger record
+	passenger := &models.Passenger{
+		ID:         uuid.New(),
+		UserID:     user.ID,
+		Rating:     5.0,
+		TotalTrips: 0,
+		CreatedAt:  user.CreatedAt,
+		UpdatedAt:  user.UpdatedAt,
+	}
+
+	if err := h.passengerRepo.Create(c.Request.Context(), passenger); err != nil {
+		switch err.(type) {
+		case *models.ValidationError:
+			c.JSON(http.StatusConflict, ErrorResponse{
+				Error:   "Validation error",
+				Message: err.Error(),
+			})
+		default:
+			c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Error:   "Internal server error",
+				Message: "Failed to create passenger",
+			})
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, user)
 }
