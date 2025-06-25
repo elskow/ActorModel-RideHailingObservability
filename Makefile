@@ -5,6 +5,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
+GORUN=$(GOCMD) run
 GOFMT=gofmt
 GOVET=$(GOCMD) vet
 
@@ -163,6 +164,24 @@ db-drop:
 
 db-reset: db-drop db-create
 	@echo "Database reset completed"
+
+db-migrate-up:
+	@echo "Running database migrations..."
+	$(GORUN) ./cmd/migrate -command=up
+
+db-migrate-down:
+	@echo "Rolling back database migrations..."
+	$(GORUN) ./cmd/migrate -command=down -steps=1
+
+db-migrate-status:
+	@echo "Checking migration status..."
+	$(GORUN) ./cmd/migrate -command=status
+
+db-populate:
+	@echo "Populating database with sample data..."
+	$(GOBUILD) -o populate ./cmd/populate
+	./populate
+	@rm -f populate
 
 # Docker operations
 docker-build:
@@ -350,6 +369,10 @@ help:
 	@echo "  db-create          - Create database"
 	@echo "  db-drop            - Drop database"
 	@echo "  db-reset           - Reset database"
+	@echo "  db-migrate-up      - Run database migrations"
+	@echo "  db-migrate-down    - Rollback last migration"
+	@echo "  db-migrate-status  - Check migration status"
+	@echo "  db-populate        - Populate database with sample data"
 	@echo "  docker-build       - Build Docker image"
 	@echo "  docker-run         - Run Docker container"
 	@echo "  install-load-tools - Install load testing tools"

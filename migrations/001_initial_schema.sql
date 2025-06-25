@@ -1,4 +1,4 @@
--- Initial database schema for Actor Model Observability project
+-- +migrate Up
 -- This migration creates all the tables defined in the ERD
 
 -- Enable UUID extension
@@ -48,7 +48,6 @@ CREATE TABLE trips (
     driver_id UUID REFERENCES drivers(id),
     pickup_latitude DECIMAL(10, 8) NOT NULL,
     pickup_longitude DECIMAL(11, 8) NOT NULL,
-    pickup_address TEXT,
     destination_latitude DECIMAL(10, 8) NOT NULL,
     destination_longitude DECIMAL(11, 8) NOT NULL,
     destination_address TEXT,
@@ -244,6 +243,7 @@ CREATE INDEX idx_traditional_metrics_type ON traditional_metrics(metric_type);
 CREATE INDEX idx_traditional_metrics_service ON traditional_metrics(service_name);
 CREATE INDEX idx_traditional_metrics_timestamp ON traditional_metrics(timestamp);
 
+-- +migrate StatementBegin
 -- Functions for automatic timestamp updates
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -252,6 +252,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
+-- +migrate StatementEnd
 
 -- Triggers for automatic timestamp updates
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
@@ -295,4 +296,31 @@ SELECT
     106.8456 + (RANDOM() * 0.1 - 0.05)
 FROM users WHERE user_type = 'driver';
 
-COMMIT;
+-- +migrate Down
+-- Drop all tables in reverse order of creation
+
+-- Drop triggers first
+DROP TRIGGER IF EXISTS update_actor_instances_updated_at ON actor_instances;
+DROP TRIGGER IF EXISTS update_trips_updated_at ON trips;
+DROP TRIGGER IF EXISTS update_passengers_updated_at ON passengers;
+DROP TRIGGER IF EXISTS update_drivers_updated_at ON drivers;
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+
+-- Drop function
+DROP FUNCTION IF EXISTS update_updated_at_column();
+
+-- Drop tables in reverse order of dependencies
+DROP TABLE IF EXISTS traditional_metrics;
+DROP TABLE IF EXISTS traditional_logs;
+DROP TABLE IF EXISTS event_logs;
+DROP TABLE IF EXISTS distributed_traces;
+DROP TABLE IF EXISTS system_metrics;
+DROP TABLE IF EXISTS actor_messages;
+DROP TABLE IF EXISTS actor_instances;
+DROP TABLE IF EXISTS trips;
+DROP TABLE IF EXISTS passengers;
+DROP TABLE IF EXISTS drivers;
+DROP TABLE IF EXISTS users;
+
+-- Drop extension (optional, might be used by other schemas)
+-- DROP EXTENSION IF EXISTS "uuid-ossp";

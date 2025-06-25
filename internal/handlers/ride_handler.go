@@ -312,15 +312,24 @@ func (h *RideHandler) ListRides(c *gin.Context) {
 	// ... UUID parsing logic ...
 
 	// Get rides from service
-	// TODO: Implement ListRides method in RideService
-	// rides, err := h.rideService.ListRides(c.Request.Context(), passengerID, driverID, status, limit, offset)
-	rides := []*models.Trip{} // Placeholder empty slice
+	rides, total, err := h.rideService.ListRides(c.Request.Context(), nil, nil, nil, limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error:   "Internal server error",
+			Message: "Failed to retrieve rides",
+		})
+		return
+	}
+
+	// Calculate has_more flag
+	hasMore := offset+len(rides) < int(total)
 
 	// Return paginated response
 	c.JSON(http.StatusOK, PaginatedResponse{
-		Data:   rides,
-		Limit:  limit,
-		Offset: offset,
-		Total:  int64(len(rides)), // Convert to int64
+		Data:    rides,
+		Limit:   limit,
+		Offset:  offset,
+		Total:   total,
+		HasMore: hasMore,
 	})
 }

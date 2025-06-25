@@ -11,6 +11,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
 	github.com/prometheus/client_golang v1.17.0
+	github.com/rubenv/sql-migrate v1.5.2
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
@@ -39,6 +40,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect

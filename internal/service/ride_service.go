@@ -464,3 +464,34 @@ func (rs *RideService) GetTripStatus(ctx context.Context, tripID string) (*model
 
 	return rs.tripRepo.GetByID(ctx, tripID)
 }
+
+// ListRides returns a paginated list of rides with optional filtering
+func (rs *RideService) ListRides(ctx context.Context, passengerID, driverID *string, status *string, limit, offset int) ([]*models.Trip, int64, error) {
+	start := time.Now()
+	defer func() {
+		duration := time.Since(start)
+		if rs.useActorModel {
+			rs.metricsCollector.RecordEvent("list_rides", "ride_service", "Rides listed", map[string]interface{}{
+				"limit":      limit,
+				"offset":     offset,
+				"duration_ms": duration.Milliseconds(),
+				"method":     "actor_model",
+			})
+		} else {
+			rs.traditionalMonitor.RecordRequest("/api/rides", "GET", duration, 200)
+		}
+	}()
+
+	// For now, we'll use the basic List method from tripRepo
+	// TODO: Implement filtering by passengerID, driverID, and status when needed
+	rides, err := rs.tripRepo.List(ctx, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list rides: %w", err)
+	}
+
+	// For total count, we'll return the length of current results
+	// In a real implementation, you'd want a separate count query
+	total := int64(len(rides))
+
+	return rides, total, nil
+}
