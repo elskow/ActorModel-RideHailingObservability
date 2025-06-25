@@ -102,11 +102,10 @@ func main() {
 	)
 
 	// Initialize traditional monitor
-	traditionalMonitor := traditional.NewTraditionalMonitor(
-		db,
-		redisClient.Client,
-		cfg,
-	)
+	traditionalMonitor, err := traditional.NewTraditionalMonitor(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize traditional monitor: %v", err)
+	}
 
 	// Initialize services
 	rideService := service.NewRideService(

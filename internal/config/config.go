@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type Config struct {
 	Logging       LoggingConfig
 	Observability ObservabilityConfig
 	Metrics       MetricsConfig
+	OpenTelemetry OpenTelemetryConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -86,6 +88,22 @@ type MetricsConfig struct {
 	BatchSize       int
 }
 
+// OpenTelemetryConfig holds OpenTelemetry configuration
+type OpenTelemetryConfig struct {
+	ServiceName        string
+	ServiceVersion     string
+	Environment        string
+	MetricsEnabled     bool
+	TracingEnabled     bool
+	MetricsExporter    string // prometheus, otlp
+	TracingExporter    string // jaeger, otlp
+	JaegerEndpoint     string
+	OTLPEndpoint       string
+	SampleRate         float64
+	MetricsInterval    time.Duration
+	ResourceAttributes map[string]string
+}
+
 // Load loads configuration from environment variables with defaults
 func Load() (*Config, error) {
 	config := &Config{
@@ -142,6 +160,20 @@ func Load() (*Config, error) {
 			FlushInterval:   getDurationEnv("METRICS_FLUSH_INTERVAL", 5*time.Minute),
 			RetentionPeriod: getDurationEnv("METRICS_RETENTION_PERIOD", 7*24*time.Hour),
 			BatchSize:       getIntEnv("METRICS_BATCH_SIZE", 100),
+		},
+		OpenTelemetry: OpenTelemetryConfig{
+			ServiceName:        getEnv("OTEL_SERVICE_NAME", "actor-model-observability"),
+			ServiceVersion:     getEnv("OTEL_SERVICE_VERSION", "1.0.0"),
+			Environment:        getEnv("OTEL_ENVIRONMENT", "development"),
+			MetricsEnabled:     getBoolEnv("OTEL_METRICS_ENABLED", true),
+			TracingEnabled:     getBoolEnv("OTEL_TRACING_ENABLED", true),
+			MetricsExporter:    getEnv("OTEL_METRICS_EXPORTER", "prometheus"),
+			TracingExporter:    getEnv("OTEL_TRACING_EXPORTER", "jaeger"),
+			JaegerEndpoint:     getEnv("OTEL_JAEGER_ENDPOINT", "http://localhost:14268/api/traces"),
+			OTLPEndpoint:       getEnv("OTEL_OTLP_ENDPOINT", "http://localhost:4317"),
+			SampleRate:         getFloatEnv("OTEL_SAMPLE_RATE", 1.0),
+			MetricsInterval:    getDurationEnv("OTEL_METRICS_INTERVAL", 10*time.Second),
+			ResourceAttributes: getMapEnv("OTEL_RESOURCE_ATTRIBUTES"),
 		},
 	}
 
@@ -287,6 +319,29 @@ func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
 		}
 	}
 	return defaultValue
+}
+
+func getFloatEnv(key string, defaultValue float64) float64 {
+	if value := os.Getenv(key); value != "" {
+		if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
+			return floatVal
+		}
+	}
+	return defaultValue
+}
+
+func getMapEnv(key string) map[string]string {
+	result := make(map[string]string)
+	if value := os.Getenv(key); value != "" {
+		// Parse comma-separated key=value pairs
+		pairs := strings.Split(value, ",")
+		for _, pair := range pairs {
+			if kv := strings.SplitN(strings.TrimSpace(pair), "=", 2); len(kv) == 2 {
+				result[strings.TrimSpace(kv[0])] = strings.TrimSpace(kv[1])
+			}
+		}
+	}
+	return result
 }
 
 // Development returns a configuration suitable for development
