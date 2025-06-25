@@ -27,12 +27,12 @@ func NewRideHandler(rideService *service.RideService) *RideHandler {
 
 // RequestRideRequest represents the request payload for ride requests
 type RequestRideRequest struct {
-	PassengerID   uuid.UUID `json:"passenger_id" binding:"required"`
-	PickupLat     float64   `json:"pickup_lat" binding:"required,min=-90,max=90"`
-	PickupLng     float64   `json:"pickup_lng" binding:"required,min=-180,max=180"`
-	DestinationLat float64  `json:"destination_lat" binding:"required,min=-90,max=90"`
-	DestinationLng float64  `json:"destination_lng" binding:"required,min=-180,max=180"`
-	RideType      string    `json:"ride_type" binding:"required,oneof=standard premium"`
+	PassengerID    uuid.UUID `json:"passenger_id" binding:"required"`
+	PickupLat      float64   `json:"pickup_lat" binding:"required,min=-90,max=90"`
+	PickupLng      float64   `json:"pickup_lng" binding:"required,min=-180,max=180"`
+	DestinationLat float64   `json:"destination_lat" binding:"required,min=-90,max=90"`
+	DestinationLng float64   `json:"destination_lng" binding:"required,min=-180,max=180"`
+	RideType       string    `json:"ride_type" binding:"required,oneof=standard premium"`
 }
 
 // RequestRideResponse represents the response for ride requests
@@ -123,7 +123,7 @@ func (h *RideHandler) RequestRide(c *gin.Context) {
 				Error:   "Resource not found",
 				Message: err.Error(),
 			})
-		// case *models.BusinessLogicError: // Commented out as this type doesn't exist yet
+			// case *models.BusinessLogicError: // Commented out as this type doesn't exist yet
 			c.JSON(http.StatusUnprocessableEntity, ErrorResponse{
 				Error:   "Business logic error",
 				Message: err.Error(),
@@ -202,7 +202,7 @@ func (h *RideHandler) CancelRide(c *gin.Context) {
 				Error:   "Resource not found",
 				Message: err.Error(),
 			})
-		// case *models.BusinessLogicError: // Commented out as this type doesn't exist yet
+			// case *models.BusinessLogicError: // Commented out as this type doesn't exist yet
 			c.JSON(http.StatusUnprocessableEntity, ErrorResponse{
 				Error:   "Business logic error",
 				Message: err.Error(),

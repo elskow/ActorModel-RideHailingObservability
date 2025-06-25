@@ -174,7 +174,7 @@ func Load() (*Config, error) {
 			MetricsExporter:    getEnv("OTEL_METRICS_EXPORTER", "prometheus"),
 			TracingExporter:    getEnv("OTEL_TRACING_EXPORTER", "otlp"),
 			JaegerEndpoint:     getEnv("OTEL_JAEGER_ENDPOINT", "http://localhost:14268/api/traces"),
-			OTLPEndpoint:     getEnv("OTEL_OTLP_ENDPOINT", "localhost:4318"),
+			OTLPEndpoint:       getEnv("OTEL_OTLP_ENDPOINT", "localhost:4318"),
 			SampleRate:         getFloatEnv("OTEL_SAMPLE_RATE", 1.0),
 			MetricsInterval:    getDurationEnv("OTEL_METRICS_INTERVAL", 10*time.Second),
 			ResourceAttributes: getMapEnv("OTEL_RESOURCE_ATTRIBUTES"),

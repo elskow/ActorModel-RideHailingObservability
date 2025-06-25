@@ -241,18 +241,18 @@ func extractTableName(query string) string {
 
 	// Look for common SQL patterns
 	patterns := map[string][]string{
-		"users":                {"FROM users", "INTO users", "UPDATE users", "DELETE FROM users"},
-		"drivers":              {"FROM drivers", "INTO drivers", "UPDATE drivers", "DELETE FROM drivers"},
-		"passengers":           {"FROM passengers", "INTO passengers", "UPDATE passengers", "DELETE FROM passengers"},
-		"trips":                {"FROM trips", "INTO trips", "UPDATE trips", "DELETE FROM trips"},
-		"actor_instances":      {"FROM actor_instances", "INTO actor_instances", "UPDATE actor_instances", "DELETE FROM actor_instances"},
-		"actor_messages":       {"FROM actor_messages", "INTO actor_messages", "UPDATE actor_messages", "DELETE FROM actor_messages"},
-		"system_metrics":       {"FROM system_metrics", "INTO system_metrics", "UPDATE system_metrics", "DELETE FROM system_metrics"},
-		"distributed_traces":   {"FROM distributed_traces", "INTO distributed_traces", "UPDATE distributed_traces", "DELETE FROM distributed_traces"},
-		"event_logs":           {"FROM event_logs", "INTO event_logs", "UPDATE event_logs", "DELETE FROM event_logs"},
+		"users":               {"FROM users", "INTO users", "UPDATE users", "DELETE FROM users"},
+		"drivers":             {"FROM drivers", "INTO drivers", "UPDATE drivers", "DELETE FROM drivers"},
+		"passengers":          {"FROM passengers", "INTO passengers", "UPDATE passengers", "DELETE FROM passengers"},
+		"trips":               {"FROM trips", "INTO trips", "UPDATE trips", "DELETE FROM trips"},
+		"actor_instances":     {"FROM actor_instances", "INTO actor_instances", "UPDATE actor_instances", "DELETE FROM actor_instances"},
+		"actor_messages":      {"FROM actor_messages", "INTO actor_messages", "UPDATE actor_messages", "DELETE FROM actor_messages"},
+		"system_metrics":      {"FROM system_metrics", "INTO system_metrics", "UPDATE system_metrics", "DELETE FROM system_metrics"},
+		"distributed_traces":  {"FROM distributed_traces", "INTO distributed_traces", "UPDATE distributed_traces", "DELETE FROM distributed_traces"},
+		"event_logs":          {"FROM event_logs", "INTO event_logs", "UPDATE event_logs", "DELETE FROM event_logs"},
 		"traditional_metrics": {"FROM traditional_metrics", "INTO traditional_metrics", "UPDATE traditional_metrics", "DELETE FROM traditional_metrics"},
-		"traditional_logs":     {"FROM traditional_logs", "INTO traditional_logs", "UPDATE traditional_logs", "DELETE FROM traditional_logs"},
-		"service_health":       {"FROM service_health", "INTO service_health", "UPDATE service_health", "DELETE FROM service_health"},
+		"traditional_logs":    {"FROM traditional_logs", "INTO traditional_logs", "UPDATE traditional_logs", "DELETE FROM traditional_logs"},
+		"service_health":      {"FROM service_health", "INTO service_health", "UPDATE service_health", "DELETE FROM service_health"},
 	}
 
 	for table, tablePatterns := range patterns {

@@ -244,11 +244,11 @@ func performGracefulShutdown(
 	go func() {
 		defer shutdownWg.Done()
 		logger.Info("Shutting down HTTP server...")
-		
+
 		// Create a shorter timeout for HTTP server shutdown
 		serverCtx, serverCancel := context.WithTimeout(shutdownCtx, 10*time.Second)
 		defer serverCancel()
-		
+
 		if err := server.Shutdown(serverCtx); err != nil {
 			errorChan <- fmt.Errorf("HTTP server shutdown error: %w", err)
 			logger.WithError(err).Error("Server forced to shutdown")
@@ -265,17 +265,17 @@ func performGracefulShutdown(
 	go func() {
 		defer shutdownWg.Done()
 		logger.Info("Stopping traditional monitor...")
-		
+
 		// Create a timeout context for traditional monitor
 		monitorCtx, monitorCancel := context.WithTimeout(shutdownCtx, 8*time.Second)
 		defer monitorCancel()
-		
+
 		// Create a channel to handle the stop operation with timeout
 		done := make(chan error, 1)
 		go func() {
 			done <- traditionalMonitor.Stop()
 		}()
-		
+
 		select {
 		case err := <-done:
 			if err != nil {
@@ -295,7 +295,7 @@ func performGracefulShutdown(
 	go func() {
 		defer shutdownWg.Done()
 		logger.Info("Stopping metrics collector...")
-		
+
 		if err := metricsCollector.Stop(); err != nil {
 			errorChan <- fmt.Errorf("metrics collector stop error: %w", err)
 			logger.WithError(err).Error("Failed to stop metrics collector")
@@ -309,7 +309,7 @@ func performGracefulShutdown(
 	go func() {
 		defer shutdownWg.Done()
 		logger.Info("Stopping actor system...")
-		
+
 		if err := actorSystem.Stop(); err != nil {
 			errorChan <- fmt.Errorf("actor system stop error: %w", err)
 			logger.WithError(err).Error("Failed to stop actor system")
@@ -323,7 +323,7 @@ func performGracefulShutdown(
 	go func() {
 		defer shutdownWg.Done()
 		logger.Info("Closing database connection...")
-		
+
 		if err := db.Close(); err != nil {
 			errorChan <- fmt.Errorf("database close error: %w", err)
 			logger.WithError(err).Error("Failed to close database connection")
@@ -337,7 +337,7 @@ func performGracefulShutdown(
 	go func() {
 		defer shutdownWg.Done()
 		logger.Info("Closing Redis connection...")
-		
+
 		if err := redisClient.Close(); err != nil {
 			errorChan <- fmt.Errorf("Redis close error: %w", err)
 			logger.WithError(err).Error("Failed to close Redis connection")

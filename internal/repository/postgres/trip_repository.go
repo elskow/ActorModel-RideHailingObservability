@@ -32,7 +32,7 @@ func (r *TripRepositoryImpl) Create(ctx context.Context, trip *models.Trip) erro
 			created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		trip.ID,
 		trip.PassengerID,
@@ -55,7 +55,7 @@ func (r *TripRepositoryImpl) Create(ctx context.Context, trip *models.Trip) erro
 		trip.CreatedAt,
 		trip.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
@@ -76,7 +76,7 @@ func (r *TripRepositoryImpl) Create(ctx context.Context, trip *models.Trip) erro
 		}
 		return fmt.Errorf("failed to create trip: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -90,7 +90,7 @@ func (r *TripRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Tr
 		FROM trips
 		WHERE id = $1
 	`
-	
+
 	trip := &models.Trip{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&trip.ID,
@@ -115,7 +115,7 @@ func (r *TripRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Tr
 		&trip.CreatedAt,
 		&trip.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -125,7 +125,7 @@ func (r *TripRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Tr
 		}
 		return nil, fmt.Errorf("failed to get trip by ID: %w", err)
 	}
-	
+
 	return trip, nil
 }
 
@@ -140,7 +140,7 @@ func (r *TripRepositoryImpl) Update(ctx context.Context, trip *models.Trip) erro
 			updated_at = $20
 		WHERE id = $1
 	`
-	
+
 	result, err := r.db.ExecContext(ctx, query,
 		trip.ID,
 		trip.PassengerID,
@@ -163,7 +163,7 @@ func (r *TripRepositoryImpl) Update(ctx context.Context, trip *models.Trip) erro
 		trip.CancelledAt,
 		trip.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
@@ -184,43 +184,43 @@ func (r *TripRepositoryImpl) Update(ctx context.Context, trip *models.Trip) erro
 		}
 		return fmt.Errorf("failed to update trip: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "trip",
 			ID:       trip.ID.String(),
 		}
 	}
-	
+
 	return nil
 }
 
 // Delete deletes a trip by ID
 func (r *TripRepositoryImpl) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM trips WHERE id = $1`
-	
+
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete trip: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "trip",
 			ID:       id,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -236,7 +236,7 @@ func (r *TripRepositoryImpl) GetByPassengerID(ctx context.Context, passengerID s
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
-	
+
 	return r.scanTrips(ctx, query, passengerID, limit, offset)
 }
 
@@ -252,7 +252,7 @@ func (r *TripRepositoryImpl) GetByDriverID(ctx context.Context, driverID string,
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
-	
+
 	return r.scanTrips(ctx, query, driverID, limit, offset)
 }
 
@@ -267,7 +267,7 @@ func (r *TripRepositoryImpl) GetActiveTrips(ctx context.Context) ([]*models.Trip
 		WHERE status IN ('requested', 'matched', 'started')
 		ORDER BY created_at DESC
 	`
-	
+
 	return r.scanTripsNoParams(ctx, query)
 }
 
@@ -283,7 +283,7 @@ func (r *TripRepositoryImpl) GetTripsByStatus(ctx context.Context, status models
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`
-	
+
 	return r.scanTrips(ctx, query, status, limit, offset)
 }
 
@@ -294,15 +294,15 @@ func (r *TripRepositoryImpl) GetTripsByDateRange(ctx context.Context, startDate,
 	if err != nil {
 		return nil, fmt.Errorf("invalid start date format: %w", err)
 	}
-	
+
 	endTime, err := time.Parse("2006-01-02", endDate)
 	if err != nil {
 		return nil, fmt.Errorf("invalid end date format: %w", err)
 	}
-	
+
 	// Add 24 hours to end date to include the entire day
 	endTime = endTime.Add(24 * time.Hour)
-	
+
 	query := `
 		SELECT id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
 			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
@@ -313,7 +313,7 @@ func (r *TripRepositoryImpl) GetTripsByDateRange(ctx context.Context, startDate,
 		ORDER BY created_at DESC
 		LIMIT $3 OFFSET $4
 	`
-	
+
 	return r.scanTrips(ctx, query, startTime, endTime, limit, offset)
 }
 
@@ -328,7 +328,7 @@ func (r *TripRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*mo
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`
-	
+
 	return r.scanTrips(ctx, query, limit, offset)
 }
 
@@ -339,7 +339,7 @@ func (r *TripRepositoryImpl) scanTrips(ctx context.Context, query string, args .
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	return r.scanTripRows(rows)
 }
 
@@ -350,7 +350,7 @@ func (r *TripRepositoryImpl) scanTripsNoParams(ctx context.Context, query string
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	return r.scanTripRows(rows)
 }
 
@@ -387,10 +387,10 @@ func (r *TripRepositoryImpl) scanTripRows(rows *sql.Rows) ([]*models.Trip, error
 		}
 		trips = append(trips, trip)
 	}
-	
+
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating trips: %w", err)
 	}
-	
+
 	return trips, nil
 }

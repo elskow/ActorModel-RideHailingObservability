@@ -31,9 +31,9 @@ func (r *DriverRepositoryImpl) Create(ctx context.Context, driver *models.Driver
 		VALUES (:id, :user_id, :license_number, :vehicle_type, :vehicle_plate, 
 			:status, :current_latitude, :current_longitude, :rating, :total_trips, :created_at, :updated_at)
 	`
-	
+
 	_, err := r.db.NamedExecContext(ctx, query, driver)
-	
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
@@ -61,7 +61,7 @@ func (r *DriverRepositoryImpl) Create(ctx context.Context, driver *models.Driver
 		}
 		return fmt.Errorf("failed to create driver: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -73,7 +73,7 @@ func (r *DriverRepositoryImpl) GetByID(ctx context.Context, id string) (*models.
 		FROM drivers
 		WHERE id = $1
 	`
-	
+
 	driver := &models.Driver{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&driver.ID,
@@ -89,7 +89,7 @@ func (r *DriverRepositoryImpl) GetByID(ctx context.Context, id string) (*models.
 		&driver.CreatedAt,
 		&driver.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -99,7 +99,7 @@ func (r *DriverRepositoryImpl) GetByID(ctx context.Context, id string) (*models.
 		}
 		return nil, fmt.Errorf("failed to get driver by ID: %w", err)
 	}
-	
+
 	return driver, nil
 }
 
@@ -111,7 +111,7 @@ func (r *DriverRepositoryImpl) GetByUserID(ctx context.Context, userID string) (
 		FROM drivers
 		WHERE user_id = $1
 	`
-	
+
 	driver := &models.Driver{}
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(
 		&driver.ID,
@@ -127,7 +127,7 @@ func (r *DriverRepositoryImpl) GetByUserID(ctx context.Context, userID string) (
 		&driver.CreatedAt,
 		&driver.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -137,7 +137,7 @@ func (r *DriverRepositoryImpl) GetByUserID(ctx context.Context, userID string) (
 		}
 		return nil, fmt.Errorf("failed to get driver by user ID: %w", err)
 	}
-	
+
 	return driver, nil
 }
 
@@ -149,7 +149,7 @@ func (r *DriverRepositoryImpl) Update(ctx context.Context, driver *models.Driver
 			current_latitude = $6, current_longitude = $7, rating = $8, total_trips = $9, updated_at = $10
 		WHERE id = $1
 	`
-	
+
 	result, err := r.db.ExecContext(ctx, query,
 		driver.ID,
 		driver.LicenseNumber,
@@ -162,7 +162,7 @@ func (r *DriverRepositoryImpl) Update(ctx context.Context, driver *models.Driver
 		driver.TotalTrips,
 		driver.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
@@ -183,43 +183,43 @@ func (r *DriverRepositoryImpl) Update(ctx context.Context, driver *models.Driver
 		}
 		return fmt.Errorf("failed to update driver: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "driver",
 			ID:       driver.ID.String(),
 		}
 	}
-	
+
 	return nil
 }
 
 // Delete deletes a driver by ID
 func (r *DriverRepositoryImpl) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM drivers WHERE id = $1`
-	
+
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete driver: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "driver",
 			ID:       id,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -232,13 +232,13 @@ func (r *DriverRepositoryImpl) GetOnlineDrivers(ctx context.Context) ([]*models.
 		WHERE status = 'online'
 		ORDER BY rating DESC, total_trips DESC
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get online drivers: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var drivers []*models.Driver
 	for rows.Next() {
 		driver := &models.Driver{}
@@ -250,7 +250,7 @@ func (r *DriverRepositoryImpl) GetOnlineDrivers(ctx context.Context) ([]*models.
 			&driver.VehiclePlate,
 			&driver.Status,
 			&driver.CurrentLatitude,
-		&driver.CurrentLongitude,
+			&driver.CurrentLongitude,
 			&driver.Rating,
 			&driver.TotalTrips,
 			&driver.CreatedAt,
@@ -261,11 +261,11 @@ func (r *DriverRepositoryImpl) GetOnlineDrivers(ctx context.Context) ([]*models.
 		}
 		drivers = append(drivers, driver)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating drivers: %w", err)
 	}
-	
+
 	return drivers, nil
 }
 
@@ -289,13 +289,13 @@ func (r *DriverRepositoryImpl) GetDriversInRadius(ctx context.Context, lat, lng,
 		HAVING distance <= $3
 		ORDER BY distance ASC, rating DESC
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, lat, lng, radiusKm)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get drivers in radius: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var drivers []*models.Driver
 	for rows.Next() {
 		driver := &models.Driver{}
@@ -308,7 +308,7 @@ func (r *DriverRepositoryImpl) GetDriversInRadius(ctx context.Context, lat, lng,
 			&driver.VehiclePlate,
 			&driver.Status,
 			&driver.CurrentLatitude,
-		&driver.CurrentLongitude,
+			&driver.CurrentLongitude,
 			&driver.Rating,
 			&driver.TotalTrips,
 			&driver.CreatedAt,
@@ -320,11 +320,11 @@ func (r *DriverRepositoryImpl) GetDriversInRadius(ctx context.Context, lat, lng,
 		}
 		drivers = append(drivers, driver)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating drivers: %w", err)
 	}
-	
+
 	return drivers, nil
 }
 
@@ -335,24 +335,24 @@ func (r *DriverRepositoryImpl) UpdateLocation(ctx context.Context, driverID stri
 		SET current_latitude = $2, current_longitude = $3, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 	`
-	
+
 	result, err := r.db.ExecContext(ctx, query, driverID, lat, lng)
 	if err != nil {
 		return fmt.Errorf("failed to update driver location: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "driver",
 			ID:       driverID,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -363,24 +363,24 @@ func (r *DriverRepositoryImpl) UpdateStatus(ctx context.Context, driverID string
 		SET status = $2, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 	`
-	
+
 	result, err := r.db.ExecContext(ctx, query, driverID, status)
 	if err != nil {
 		return fmt.Errorf("failed to update driver status: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "driver",
 			ID:       driverID,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -393,13 +393,13 @@ func (r *DriverRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list drivers: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var drivers []*models.Driver
 	for rows.Next() {
 		driver := &models.Driver{}
@@ -411,7 +411,7 @@ func (r *DriverRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*
 			&driver.VehiclePlate,
 			&driver.Status,
 			&driver.CurrentLatitude,
-		&driver.CurrentLongitude,
+			&driver.CurrentLongitude,
 			&driver.Rating,
 			&driver.TotalTrips,
 			&driver.CreatedAt,
@@ -422,30 +422,30 @@ func (r *DriverRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*
 		}
 		drivers = append(drivers, driver)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating drivers: %w", err)
 	}
-	
+
 	return drivers, nil
 }
 
 // calculateDistance calculates the distance between two points using Haversine formula
 func calculateDistance(lat1, lng1, lat2, lng2 float64) float64 {
 	const earthRadius = 6371 // Earth's radius in kilometers
-	
+
 	// Convert degrees to radians
 	lat1Rad := lat1 * math.Pi / 180
 	lng1Rad := lng1 * math.Pi / 180
 	lat2Rad := lat2 * math.Pi / 180
 	lng2Rad := lng2 * math.Pi / 180
-	
+
 	// Haversine formula
 	dlat := lat2Rad - lat1Rad
 	dlng := lng2Rad - lng1Rad
-	
+
 	a := math.Sin(dlat/2)*math.Sin(dlat/2) + math.Cos(lat1Rad)*math.Cos(lat2Rad)*math.Sin(dlng/2)*math.Sin(dlng/2)
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
-	
+
 	return earthRadius * c
 }

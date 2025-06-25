@@ -28,9 +28,9 @@ func (r *UserRepositoryImpl) Create(ctx context.Context, user *models.User) erro
 		INSERT INTO users (id, email, phone, name, user_type, created_at, updated_at)
 		VALUES (:id, :email, :phone, :name, :user_type, :created_at, :updated_at)
 	`
-	
+
 	_, err := r.db.NamedExecContext(ctx, query, user)
-	
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
@@ -51,7 +51,7 @@ func (r *UserRepositoryImpl) Create(ctx context.Context, user *models.User) erro
 		}
 		return fmt.Errorf("failed to create user: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -62,10 +62,10 @@ func (r *UserRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Us
 		FROM users
 		WHERE id = $1
 	`
-	
+
 	user := &models.User{}
 	err := r.db.GetContext(ctx, user, query, id)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -75,7 +75,7 @@ func (r *UserRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Us
 		}
 		return nil, fmt.Errorf("failed to get user by ID: %w", err)
 	}
-	
+
 	return user, nil
 }
 
@@ -86,10 +86,10 @@ func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*mod
 		FROM users
 		WHERE email = $1
 	`
-	
+
 	user := &models.User{}
 	err := r.db.GetContext(ctx, user, query, email)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -99,7 +99,7 @@ func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*mod
 		}
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
-	
+
 	return user, nil
 }
 
@@ -110,10 +110,10 @@ func (r *UserRepositoryImpl) GetByPhone(ctx context.Context, phone string) (*mod
 		FROM users
 		WHERE phone = $1
 	`
-	
+
 	user := &models.User{}
 	err := r.db.GetContext(ctx, user, query, phone)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -123,7 +123,7 @@ func (r *UserRepositoryImpl) GetByPhone(ctx context.Context, phone string) (*mod
 		}
 		return nil, fmt.Errorf("failed to get user by phone: %w", err)
 	}
-	
+
 	return user, nil
 }
 
@@ -134,9 +134,9 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, user *models.User) erro
 		SET email = :email, phone = :phone, name = :name, user_type = :user_type, updated_at = :updated_at
 		WHERE id = :id
 	`
-	
+
 	result, err := r.db.NamedExecContext(ctx, query, user)
-	
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
@@ -157,43 +157,43 @@ func (r *UserRepositoryImpl) Update(ctx context.Context, user *models.User) erro
 		}
 		return fmt.Errorf("failed to update user: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "user",
 			ID:       user.ID.String(),
 		}
 	}
-	
+
 	return nil
 }
 
 // Delete deletes a user by ID
 func (r *UserRepositoryImpl) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM users WHERE id = $1`
-	
+
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "user",
 			ID:       id,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -205,13 +205,13 @@ func (r *UserRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*mo
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var users []*models.User
 	for rows.Next() {
 		user := &models.User{}
@@ -229,10 +229,10 @@ func (r *UserRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*mo
 		}
 		users = append(users, user)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating users: %w", err)
 	}
-	
+
 	return users, nil
 }

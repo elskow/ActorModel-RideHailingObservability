@@ -17,11 +17,11 @@ type ErrorResponse struct {
 
 // PaginatedResponse represents a paginated response
 type PaginatedResponse struct {
-	Data       interface{} `json:"data"`
-	Total      int64       `json:"total"`
-	Limit      int         `json:"limit"`
-	Offset     int         `json:"offset"`
-	HasMore    bool        `json:"has_more"`
+	Data    interface{} `json:"data"`
+	Total   int64       `json:"total"`
+	Limit   int         `json:"limit"`
+	Offset  int         `json:"offset"`
+	HasMore bool        `json:"has_more"`
 }
 
 // ObservabilityHandler handles observability-related HTTP requests
@@ -92,7 +92,7 @@ func (h *ObservabilityHandler) GetActorInstances(c *gin.Context) {
 		Data:   actors,
 		Limit:  limit,
 		Offset: offset,
-		Total:      int64(len(actors)),
+		Total:  int64(len(actors)),
 	})
 }
 
@@ -377,7 +377,7 @@ func (h *ObservabilityHandler) GetTraditionalPrometheusMetrics(c *gin.Context) {
 
 	// Convert to Prometheus format
 	var prometheusMetrics string
-	
+
 	// Add help and type information for traditional metrics
 	prometheusMetrics += "# HELP http_requests_total Total HTTP requests\n"
 	prometheusMetrics += "# TYPE http_requests_total counter\n"
@@ -406,8 +406,8 @@ func (h *ObservabilityHandler) GetTraditionalPrometheusMetrics(c *gin.Context) {
 				// Parse labels if they exist
 				labels = fmt.Sprintf("{service=\"%s\"}", metric.ServiceName)
 			}
-			
-			prometheusMetrics += fmt.Sprintf("%s%s %f\n", 
+
+			prometheusMetrics += fmt.Sprintf("%s%s %f\n",
 				metricName, labels, metric.MetricValue)
 		}
 	}
@@ -598,9 +598,9 @@ func (h *ObservabilityHandler) GetServiceHealth(c *gin.Context) {
 	// Parse query parameters
 	limitStr := c.DefaultQuery("limit", "20")
 	offsetStr := c.DefaultQuery("offset", "0")
-	_ = c.Query("service_name")     // serviceName - unused for now
-	_ = c.Query("start_time")       // startTime - unused for now
-	_ = c.Query("end_time")         // endTime - unused for now
+	_ = c.Query("service_name") // serviceName - unused for now
+	_ = c.Query("start_time")   // startTime - unused for now
+	_ = c.Query("end_time")     // endTime - unused for now
 
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 || limit > 100 {
@@ -718,7 +718,7 @@ func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
 
 	// Convert to Prometheus format
 	var prometheusMetrics string
-	
+
 	// Add help and type information for system metrics
 	prometheusMetrics += "# HELP actor_system_cpu_usage CPU usage percentage\n"
 	prometheusMetrics += "# TYPE actor_system_cpu_usage gauge\n"
@@ -775,28 +775,28 @@ func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
 			if metric.ActorID != nil {
 				actorID = *metric.ActorID
 			}
-			prometheusMetrics += fmt.Sprintf("actor_system_cpu_usage{instance_id=\"%s\"} %f\n", 
+			prometheusMetrics += fmt.Sprintf("actor_system_cpu_usage{instance_id=\"%s\"} %f\n",
 				actorID, metric.MetricValue)
 		case "memory_usage":
 			actorID := "unknown"
 			if metric.ActorID != nil {
 				actorID = *metric.ActorID
 			}
-			prometheusMetrics += fmt.Sprintf("actor_system_memory_usage{instance_id=\"%s\"} %f\n", 
+			prometheusMetrics += fmt.Sprintf("actor_system_memory_usage{instance_id=\"%s\"} %f\n",
 				actorID, metric.MetricValue)
 		case "goroutines":
 			actorID := "unknown"
 			if metric.ActorID != nil {
 				actorID = *metric.ActorID
 			}
-			prometheusMetrics += fmt.Sprintf("actor_system_goroutines{instance_id=\"%s\"} %f\n", 
+			prometheusMetrics += fmt.Sprintf("actor_system_goroutines{instance_id=\"%s\"} %f\n",
 				actorID, metric.MetricValue)
 		case "heap_alloc":
 			actorID := "unknown"
 			if metric.ActorID != nil {
 				actorID = *metric.ActorID
 			}
-			prometheusMetrics += fmt.Sprintf("actor_system_heap_alloc{instance_id=\"%s\"} %f\n", 
+			prometheusMetrics += fmt.Sprintf("actor_system_heap_alloc{instance_id=\"%s\"} %f\n",
 				actorID, metric.MetricValue)
 		}
 	}
@@ -811,8 +811,8 @@ func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
 				// Parse labels if they exist
 				labels = fmt.Sprintf("{service=\"%s\"}", metric.ServiceName)
 			}
-			
-			prometheusMetrics += fmt.Sprintf("%s%s %f\n", 
+
+			prometheusMetrics += fmt.Sprintf("%s%s %f\n",
 				metricName, labels, metric.MetricValue)
 		}
 	}

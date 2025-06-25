@@ -29,14 +29,14 @@ const (
 
 // ActorInstance represents an actor instance in the system
 type ActorInstance struct {
-	ID            uuid.UUID    `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	ActorType     ActorType    `json:"actor_type" gorm:"not null;check:actor_type IN ('passenger', 'driver', 'trip', 'matching', 'observability')"`
-	ActorID       string       `json:"actor_id" gorm:"not null"`
-	EntityID      *uuid.UUID   `json:"entity_id" gorm:"type:uuid"`
-	Status        ActorStatus  `json:"status" gorm:"default:'active';check:status IN ('active', 'inactive', 'error')"`
-	LastHeartbeat time.Time    `json:"last_heartbeat" gorm:"default:CURRENT_TIMESTAMP"`
-	CreatedAt     time.Time    `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt     time.Time    `json:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
+	ID            uuid.UUID   `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	ActorType     ActorType   `json:"actor_type" gorm:"not null;check:actor_type IN ('passenger', 'driver', 'trip', 'matching', 'observability')"`
+	ActorID       string      `json:"actor_id" gorm:"not null"`
+	EntityID      *uuid.UUID  `json:"entity_id" gorm:"type:uuid"`
+	Status        ActorStatus `json:"status" gorm:"default:'active';check:status IN ('active', 'inactive', 'error')"`
+	LastHeartbeat time.Time   `json:"last_heartbeat" gorm:"default:CURRENT_TIMESTAMP"`
+	CreatedAt     time.Time   `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
+	UpdatedAt     time.Time   `json:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 // TableName returns the table name for ActorInstance
@@ -56,23 +56,23 @@ const (
 
 // ActorMessage represents a message between actors
 type ActorMessage struct {
-	ID                   uuid.UUID      `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	TraceID              uuid.UUID      `json:"trace_id" gorm:"type:uuid;not null;index"`
-	SpanID               uuid.UUID      `json:"span_id" gorm:"type:uuid;not null;index"`
-	ParentSpanID         *uuid.UUID     `json:"parent_span_id" gorm:"type:uuid;index"`
-	SenderActorType      ActorType      `json:"sender_actor_type" gorm:"not null"`
-	SenderActorID        string         `json:"sender_actor_id" gorm:"not null"`
-	ReceiverActorType    ActorType      `json:"receiver_actor_type" gorm:"not null"`
-	ReceiverActorID      string         `json:"receiver_actor_id" gorm:"not null"`
-	MessageType          string         `json:"message_type" gorm:"not null"`
+	ID                   uuid.UUID       `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	TraceID              uuid.UUID       `json:"trace_id" gorm:"type:uuid;not null;index"`
+	SpanID               uuid.UUID       `json:"span_id" gorm:"type:uuid;not null;index"`
+	ParentSpanID         *uuid.UUID      `json:"parent_span_id" gorm:"type:uuid;index"`
+	SenderActorType      ActorType       `json:"sender_actor_type" gorm:"not null"`
+	SenderActorID        string          `json:"sender_actor_id" gorm:"not null"`
+	ReceiverActorType    ActorType       `json:"receiver_actor_type" gorm:"not null"`
+	ReceiverActorID      string          `json:"receiver_actor_id" gorm:"not null"`
+	MessageType          string          `json:"message_type" gorm:"not null"`
 	MessagePayload       json.RawMessage `json:"message_payload" gorm:"type:jsonb" swaggertype:"object"`
-	Status               MessageStatus  `json:"status" gorm:"default:'sent';check:status IN ('sent', 'received', 'processed', 'failed')"`
-	SentAt               time.Time      `json:"sent_at" gorm:"default:CURRENT_TIMESTAMP"`
-	ReceivedAt           *time.Time     `json:"received_at"`
-	ProcessedAt          *time.Time     `json:"processed_at"`
-	ProcessingDurationMs *int           `json:"processing_duration_ms"`
-	ErrorMessage         *string        `json:"error_message"`
-	CreatedAt            time.Time      `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
+	Status               MessageStatus   `json:"status" gorm:"default:'sent';check:status IN ('sent', 'received', 'processed', 'failed')"`
+	SentAt               time.Time       `json:"sent_at" gorm:"default:CURRENT_TIMESTAMP"`
+	ReceivedAt           *time.Time      `json:"received_at"`
+	ProcessedAt          *time.Time      `json:"processed_at"`
+	ProcessingDurationMs *int            `json:"processing_duration_ms"`
+	ErrorMessage         *string         `json:"error_message"`
+	CreatedAt            time.Time       `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 // TableName returns the table name for ActorMessage
@@ -223,7 +223,7 @@ func (dt *DistributedTrace) FinishWithError(err error) {
 	dt.Status = TraceStatusError
 	// Add error to logs
 	errorLog := map[string]interface{}{
-		"error": err.Error(),
+		"error":     err.Error(),
 		"timestamp": time.Now(),
 	}
 	if dt.Logs == nil {
@@ -253,13 +253,13 @@ func (dt *DistributedTrace) AddTag(key string, value interface{}) {
 // AddLog adds a log entry to the trace
 func (dt *DistributedTrace) AddLog(message string, fields map[string]interface{}) {
 	logEntry := map[string]interface{}{
-		"message": message,
+		"message":   message,
 		"timestamp": time.Now(),
 	}
 	for k, v := range fields {
 		logEntry[k] = v
 	}
-	
+
 	if dt.Logs == nil {
 		dt.Logs = json.RawMessage("[]")
 	}
@@ -317,18 +317,18 @@ func (TraditionalLog) TableName() string {
 
 // ServiceHealth represents a service health record
 type ServiceHealth struct {
-	ID                  uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	ServiceName         string    `json:"service_name" gorm:"not null"`
-	Status              string    `json:"status" gorm:"not null"`
-	ResponseTimeMs      float64   `json:"response_time_ms"`
-	CPUUsagePercent     float64   `json:"cpu_usage_percent"`
-	MemoryUsagePercent  float64   `json:"memory_usage_percent"`
-	DiskUsagePercent    float64   `json:"disk_usage_percent"`
-	ActiveConnections   int       `json:"active_connections"`
-	ErrorRatePercent    float64   `json:"error_rate_percent"`
-	LastError           string    `json:"last_error"`
-	Timestamp           time.Time `json:"timestamp" gorm:"default:CURRENT_TIMESTAMP;index"`
-	CreatedAt           time.Time `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
+	ID                 uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	ServiceName        string    `json:"service_name" gorm:"not null"`
+	Status             string    `json:"status" gorm:"not null"`
+	ResponseTimeMs     float64   `json:"response_time_ms"`
+	CPUUsagePercent    float64   `json:"cpu_usage_percent"`
+	MemoryUsagePercent float64   `json:"memory_usage_percent"`
+	DiskUsagePercent   float64   `json:"disk_usage_percent"`
+	ActiveConnections  int       `json:"active_connections"`
+	ErrorRatePercent   float64   `json:"error_rate_percent"`
+	LastError          string    `json:"last_error"`
+	Timestamp          time.Time `json:"timestamp" gorm:"default:CURRENT_TIMESTAMP;index"`
+	CreatedAt          time.Time `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 // TableName returns the table name for ServiceHealth

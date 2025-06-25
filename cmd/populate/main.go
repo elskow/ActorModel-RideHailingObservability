@@ -175,7 +175,7 @@ func generateSampleTrips(drivers []models.Driver, passengers []models.Passenger)
 			DriverID:             &driver.ID,
 			PickupAddress:        &pickupAddr,
 			DestinationAddress:   &destAddr,
-			PickupLatitude:       37.7749 + float64(i%10)*0.01,  // Vary around SF
+			PickupLatitude:       37.7749 + float64(i%10)*0.01, // Vary around SF
 			PickupLongitude:      -122.4194 + float64(i%10)*0.01,
 			DestinationLatitude:  37.7849 + float64(i%10)*0.01,
 			DestinationLongitude: -122.4094 + float64(i%10)*0.01,

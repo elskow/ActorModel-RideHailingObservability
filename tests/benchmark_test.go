@@ -48,10 +48,10 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 			SupervisionStrategy: "restart",
 		},
 		OpenTelemetry: config.OpenTelemetryConfig{
-			ServiceName:     "benchmark-test",
-			TracingEnabled:  false,
-			MetricsEnabled:  false,
-			OTLPEndpoint:    "http://localhost:4317",
+			ServiceName:    "benchmark-test",
+			TracingEnabled: false,
+			MetricsEnabled: false,
+			OTLPEndpoint:   "http://localhost:4317",
 		},
 		Metrics: config.MetricsConfig{
 			CollectInterval: 1 * time.Second,

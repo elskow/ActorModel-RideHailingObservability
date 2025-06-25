@@ -10,13 +10,13 @@ import (
 type TripStatus string
 
 const (
-	TripStatusRequested      TripStatus = "requested"
-	TripStatusMatched        TripStatus = "matched"
-	TripStatusAccepted       TripStatus = "accepted"
-	TripStatusDriverArrived  TripStatus = "driver_arrived"
-	TripStatusInProgress     TripStatus = "in_progress"
-	TripStatusCompleted      TripStatus = "completed"
-	TripStatusCancelled      TripStatus = "cancelled"
+	TripStatusRequested     TripStatus = "requested"
+	TripStatusMatched       TripStatus = "matched"
+	TripStatusAccepted      TripStatus = "accepted"
+	TripStatusDriverArrived TripStatus = "driver_arrived"
+	TripStatusInProgress    TripStatus = "in_progress"
+	TripStatusCompleted     TripStatus = "completed"
+	TripStatusCancelled     TripStatus = "cancelled"
 )
 
 // Trip represents a trip in the system
@@ -85,7 +85,7 @@ func (t *Trip) GetDestinationLocation() (lat, lng float64) {
 func (t *Trip) SetStatus(status TripStatus) {
 	t.Status = status
 	t.UpdatedAt = time.Now()
-	
+
 	now := time.Now()
 	switch status {
 	case TripStatusMatched:

@@ -31,7 +31,7 @@ func (r *TraditionalRepositoryImpl) CreateTraditionalMetric(ctx context.Context,
 			service_name, instance_id, timestamp, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		metric.ID,
 		metric.MetricName,
@@ -43,11 +43,11 @@ func (r *TraditionalRepositoryImpl) CreateTraditionalMetric(ctx context.Context,
 		metric.Timestamp,
 		metric.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create traditional metric: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -59,7 +59,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalMetric(ctx context.Context, id
 		FROM traditional_metrics
 		WHERE id = $1
 	`
-	
+
 	metric := &models.TraditionalMetric{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&metric.ID,
@@ -72,7 +72,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalMetric(ctx context.Context, id
 		&metric.Timestamp,
 		&metric.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -82,7 +82,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalMetric(ctx context.Context, id
 		}
 		return nil, fmt.Errorf("failed to get traditional metric: %w", err)
 	}
-	
+
 	return metric, nil
 }
 
@@ -90,7 +90,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalMetric(ctx context.Context, id
 func (r *TraditionalRepositoryImpl) ListTraditionalMetrics(ctx context.Context, metricType, serviceName string, limit, offset int) ([]*models.TraditionalMetric, error) {
 	var query string
 	var args []interface{}
-	
+
 	if metricType != "" && serviceName != "" {
 		query = `
 			SELECT id, metric_name, metric_type, metric_value, labels, service_name, 
@@ -131,7 +131,7 @@ func (r *TraditionalRepositoryImpl) ListTraditionalMetrics(ctx context.Context, 
 		`
 		args = []interface{}{limit, offset}
 	}
-	
+
 	return r.scanTraditionalMetrics(ctx, query, args...)
 }
 
@@ -141,12 +141,12 @@ func (r *TraditionalRepositoryImpl) GetTraditionalMetricsByTimeRange(ctx context
 	if err != nil {
 		return nil, fmt.Errorf("invalid start time format: %w", err)
 	}
-	
+
 	endTimeParsed, err := time.Parse(time.RFC3339, endTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid end time format: %w", err)
 	}
-	
+
 	query := `
 		SELECT id, metric_name, metric_type, metric_value, labels, service_name, 
 			instance_id, timestamp, created_at
@@ -155,7 +155,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalMetricsByTimeRange(ctx context
 		ORDER BY timestamp DESC
 		LIMIT $3 OFFSET $4
 	`
-	
+
 	return r.scanTraditionalMetrics(ctx, query, startTimeParsed, endTimeParsed, limit, offset)
 }
 
@@ -179,11 +179,11 @@ func (r *TraditionalRepositoryImpl) CreateTraditionalLog(ctx context.Context, lo
 		log.Timestamp,
 		log.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create traditional log: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -207,7 +207,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalLog(ctx context.Context, id st
 		&log.Timestamp,
 		&log.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -217,7 +217,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalLog(ctx context.Context, id st
 		}
 		return nil, fmt.Errorf("failed to get traditional log: %w", err)
 	}
-	
+
 	return log, nil
 }
 
@@ -225,7 +225,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalLog(ctx context.Context, id st
 func (r *TraditionalRepositoryImpl) ListTraditionalLogs(ctx context.Context, level, serviceName string, limit, offset int) ([]*models.TraditionalLog, error) {
 	var query string
 	var args []interface{}
-	
+
 	if level != "" && serviceName != "" {
 		query = `
 			SELECT id, level, message, service_name, instance_id, fields, 
@@ -266,7 +266,7 @@ func (r *TraditionalRepositoryImpl) ListTraditionalLogs(ctx context.Context, lev
 		`
 		args = []interface{}{limit, offset}
 	}
-	
+
 	return r.scanTraditionalLogs(ctx, query, args...)
 }
 
@@ -276,12 +276,12 @@ func (r *TraditionalRepositoryImpl) GetTraditionalLogsByTimeRange(ctx context.Co
 	if err != nil {
 		return nil, fmt.Errorf("invalid start time format: %w", err)
 	}
-	
+
 	endTimeParsed, err := time.Parse(time.RFC3339, endTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid end time format: %w", err)
 	}
-	
+
 	query := `
 		SELECT id, level, message, service_name, instance_id, fields, 
 			timestamp, created_at
@@ -290,7 +290,7 @@ func (r *TraditionalRepositoryImpl) GetTraditionalLogsByTimeRange(ctx context.Co
 		ORDER BY timestamp DESC
 		LIMIT $3 OFFSET $4
 	`
-	
+
 	return r.scanTraditionalLogs(ctx, query, startTimeParsed, endTimeParsed, limit, offset)
 }
 
@@ -304,7 +304,7 @@ func (r *TraditionalRepositoryImpl) CreateServiceHealth(ctx context.Context, hea
 			active_connections, error_rate_percent, last_error, timestamp, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		health.ID,
 		health.ServiceName,
@@ -319,11 +319,11 @@ func (r *TraditionalRepositoryImpl) CreateServiceHealth(ctx context.Context, hea
 		health.Timestamp,
 		health.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create service health: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -336,7 +336,7 @@ func (r *TraditionalRepositoryImpl) GetServiceHealth(ctx context.Context, id str
 		FROM service_health
 		WHERE id = $1
 	`
-	
+
 	health := &models.ServiceHealth{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&health.ID,
@@ -352,7 +352,7 @@ func (r *TraditionalRepositoryImpl) GetServiceHealth(ctx context.Context, id str
 		&health.Timestamp,
 		&health.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -362,7 +362,7 @@ func (r *TraditionalRepositoryImpl) GetServiceHealth(ctx context.Context, id str
 		}
 		return nil, fmt.Errorf("failed to get service health: %w", err)
 	}
-	
+
 	return health, nil
 }
 
@@ -377,7 +377,7 @@ func (r *TraditionalRepositoryImpl) GetLatestServiceHealth(ctx context.Context, 
 		ORDER BY timestamp DESC
 		LIMIT 1
 	`
-	
+
 	health := &models.ServiceHealth{}
 	err := r.db.QueryRowContext(ctx, query, serviceName).Scan(
 		&health.ID,
@@ -393,7 +393,7 @@ func (r *TraditionalRepositoryImpl) GetLatestServiceHealth(ctx context.Context, 
 		&health.Timestamp,
 		&health.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -403,7 +403,7 @@ func (r *TraditionalRepositoryImpl) GetLatestServiceHealth(ctx context.Context, 
 		}
 		return nil, fmt.Errorf("failed to get latest service health: %w", err)
 	}
-	
+
 	return health, nil
 }
 
@@ -411,7 +411,7 @@ func (r *TraditionalRepositoryImpl) GetLatestServiceHealth(ctx context.Context, 
 func (r *TraditionalRepositoryImpl) ListServiceHealth(ctx context.Context, serviceName string, limit, offset int) ([]*models.ServiceHealth, error) {
 	var query string
 	var args []interface{}
-	
+
 	if serviceName != "" {
 		query = `
 			SELECT id, service_name, status, response_time_ms, cpu_usage_percent, 
@@ -434,7 +434,7 @@ func (r *TraditionalRepositoryImpl) ListServiceHealth(ctx context.Context, servi
 		`
 		args = []interface{}{limit, offset}
 	}
-	
+
 	return r.scanServiceHealth(ctx, query, args...)
 }
 
@@ -444,15 +444,15 @@ func (r *TraditionalRepositoryImpl) GetServiceHealthByTimeRange(ctx context.Cont
 	if err != nil {
 		return nil, fmt.Errorf("invalid start time format: %w", err)
 	}
-	
+
 	endTimeParsed, err := time.Parse(time.RFC3339, endTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid end time format: %w", err)
 	}
-	
+
 	var query string
 	var args []interface{}
-	
+
 	if serviceName != "" {
 		query = `
 			SELECT id, service_name, status, response_time_ms, cpu_usage_percent, 
@@ -476,7 +476,7 @@ func (r *TraditionalRepositoryImpl) GetServiceHealthByTimeRange(ctx context.Cont
 		`
 		args = []interface{}{startTimeParsed, endTimeParsed, limit, offset}
 	}
-	
+
 	return r.scanServiceHealth(ctx, query, args...)
 }
 
@@ -488,7 +488,7 @@ func (r *TraditionalRepositoryImpl) scanTraditionalMetrics(ctx context.Context, 
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var metrics []*models.TraditionalMetric
 	for rows.Next() {
 		metric := &models.TraditionalMetric{}
@@ -508,11 +508,11 @@ func (r *TraditionalRepositoryImpl) scanTraditionalMetrics(ctx context.Context, 
 		}
 		metrics = append(metrics, metric)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating traditional metrics: %w", err)
 	}
-	
+
 	return metrics, nil
 }
 
@@ -522,7 +522,7 @@ func (r *TraditionalRepositoryImpl) scanTraditionalLogs(ctx context.Context, que
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var logs []*models.TraditionalLog
 	for rows.Next() {
 		log := &models.TraditionalLog{}
@@ -541,11 +541,11 @@ func (r *TraditionalRepositoryImpl) scanTraditionalLogs(ctx context.Context, que
 		}
 		logs = append(logs, log)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating traditional logs: %w", err)
 	}
-	
+
 	return logs, nil
 }
 
@@ -555,7 +555,7 @@ func (r *TraditionalRepositoryImpl) scanServiceHealth(ctx context.Context, query
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var healthRecords []*models.ServiceHealth
 	for rows.Next() {
 		health := &models.ServiceHealth{}
@@ -578,10 +578,10 @@ func (r *TraditionalRepositoryImpl) scanServiceHealth(ctx context.Context, query
 		}
 		healthRecords = append(healthRecords, health)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating service health records: %w", err)
 	}
-	
+
 	return healthRecords, nil
 }

@@ -20,13 +20,13 @@ type TraditionalMonitor struct {
 
 // ServiceHealth represents the health status of a service
 type ServiceHealth struct {
-	ServiceName   string            `json:"service_name"`
-	Status        string            `json:"status"`
-	Uptime        time.Duration     `json:"uptime" swaggertype:"integer"`
-	LastCheck     time.Time         `json:"last_check"`
-	HealthChecks  map[string]string `json:"health_checks"`
-	Dependencies  []string          `json:"dependencies"`
-	Metrics       map[string]float64 `json:"metrics"`
+	ServiceName  string             `json:"service_name"`
+	Status       string             `json:"status"`
+	Uptime       time.Duration      `json:"uptime" swaggertype:"integer"`
+	LastCheck    time.Time          `json:"last_check"`
+	HealthChecks map[string]string  `json:"health_checks"`
+	Dependencies []string           `json:"dependencies"`
+	Metrics      map[string]float64 `json:"metrics"`
 }
 
 // NewTraditionalMonitor creates a new OpenTelemetry-based monitoring system
@@ -56,7 +56,7 @@ func (tm *TraditionalMonitor) Stop() error {
 		// Don't use tm.ctx as it might already be canceled
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer shutdownCancel()
-		
+
 		if err := tm.otelMonitor.Shutdown(shutdownCtx); err != nil {
 			tm.logger.WithError(err).Error("Failed to shutdown OpenTelemetry monitor")
 			return err

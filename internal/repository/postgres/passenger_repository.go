@@ -28,7 +28,7 @@ func (r *PassengerRepositoryImpl) Create(ctx context.Context, passenger *models.
 		INSERT INTO passengers (id, user_id, rating, total_trips, created_at, updated_at)
 		VALUES (:id, :user_id, :rating, :total_trips, :created_at, :updated_at)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		passenger.ID,
 		passenger.UserID,
@@ -37,7 +37,7 @@ func (r *PassengerRepositoryImpl) Create(ctx context.Context, passenger *models.
 		passenger.CreatedAt,
 		passenger.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code {
@@ -59,7 +59,7 @@ func (r *PassengerRepositoryImpl) Create(ctx context.Context, passenger *models.
 		}
 		return fmt.Errorf("failed to create passenger: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -70,7 +70,7 @@ func (r *PassengerRepositoryImpl) GetByID(ctx context.Context, id string) (*mode
 		FROM passengers
 		WHERE id = $1
 	`
-	
+
 	passenger := &models.Passenger{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&passenger.ID,
@@ -80,7 +80,7 @@ func (r *PassengerRepositoryImpl) GetByID(ctx context.Context, id string) (*mode
 		&passenger.CreatedAt,
 		&passenger.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -90,7 +90,7 @@ func (r *PassengerRepositoryImpl) GetByID(ctx context.Context, id string) (*mode
 		}
 		return nil, fmt.Errorf("failed to get passenger by ID: %w", err)
 	}
-	
+
 	return passenger, nil
 }
 
@@ -101,7 +101,7 @@ func (r *PassengerRepositoryImpl) GetByUserID(ctx context.Context, userID string
 		FROM passengers
 		WHERE user_id = $1
 	`
-	
+
 	passenger := &models.Passenger{}
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(
 		&passenger.ID,
@@ -111,7 +111,7 @@ func (r *PassengerRepositoryImpl) GetByUserID(ctx context.Context, userID string
 		&passenger.CreatedAt,
 		&passenger.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -121,7 +121,7 @@ func (r *PassengerRepositoryImpl) GetByUserID(ctx context.Context, userID string
 		}
 		return nil, fmt.Errorf("failed to get passenger by user ID: %w", err)
 	}
-	
+
 	return passenger, nil
 }
 
@@ -132,54 +132,54 @@ func (r *PassengerRepositoryImpl) Update(ctx context.Context, passenger *models.
 		SET rating = $2, total_trips = $3, updated_at = $4
 		WHERE id = $1
 	`
-	
+
 	result, err := r.db.ExecContext(ctx, query,
 		passenger.ID,
 		passenger.Rating,
 		passenger.TotalTrips,
 		passenger.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to update passenger: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "passenger",
 			ID:       passenger.ID.String(),
 		}
 	}
-	
+
 	return nil
 }
 
 // Delete deletes a passenger by ID
 func (r *PassengerRepositoryImpl) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM passengers WHERE id = $1`
-	
+
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete passenger: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "passenger",
 			ID:       id,
 		}
 	}
-	
+
 	return nil
 }
 
@@ -191,13 +191,13 @@ func (r *PassengerRepositoryImpl) List(ctx context.Context, limit, offset int) (
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2
 	`
-	
+
 	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list passengers: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var passengers []*models.Passenger
 	for rows.Next() {
 		passenger := &models.Passenger{}
@@ -214,10 +214,10 @@ func (r *PassengerRepositoryImpl) List(ctx context.Context, limit, offset int) (
 		}
 		passengers = append(passengers, passenger)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating passengers: %w", err)
 	}
-	
+
 	return passengers, nil
 }

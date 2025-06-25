@@ -39,17 +39,17 @@ type SystemMetrics struct {
 
 // ActorSystem manages a collection of actors
 type ActorSystem struct {
-	name        string
-	actors      map[string]*ActorRef
-	actorsMutex sync.RWMutex
-	ctx         context.Context
-	cancel      context.CancelFunc
-	logger      *logging.Logger
-	metrics     SystemMetrics
-	metricsLock sync.RWMutex
-	startTime   time.Time
-	wg          sync.WaitGroup
-	started     bool
+	name         string
+	actors       map[string]*ActorRef
+	actorsMutex  sync.RWMutex
+	ctx          context.Context
+	cancel       context.CancelFunc
+	logger       *logging.Logger
+	metrics      SystemMetrics
+	metricsLock  sync.RWMutex
+	startTime    time.Time
+	wg           sync.WaitGroup
+	started      bool
 	startedMutex sync.RWMutex
 
 	// Event handlers

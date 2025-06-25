@@ -30,7 +30,7 @@ func (r *ObservabilityRepositoryImpl) CreateActorInstance(ctx context.Context, i
 		INSERT INTO actor_instances (id, actor_type, actor_id, entity_id, status, last_heartbeat, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		instance.ID,
 		instance.ActorType,
@@ -41,11 +41,11 @@ func (r *ObservabilityRepositoryImpl) CreateActorInstance(ctx context.Context, i
 		instance.CreatedAt,
 		instance.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create actor instance: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -56,7 +56,7 @@ func (r *ObservabilityRepositoryImpl) GetActorInstance(ctx context.Context, id s
 		FROM actor_instances
 		WHERE id = $1
 	`
-	
+
 	instance := &models.ActorInstance{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&instance.ID,
@@ -68,7 +68,7 @@ func (r *ObservabilityRepositoryImpl) GetActorInstance(ctx context.Context, id s
 		&instance.CreatedAt,
 		&instance.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -78,7 +78,7 @@ func (r *ObservabilityRepositoryImpl) GetActorInstance(ctx context.Context, id s
 		}
 		return nil, fmt.Errorf("failed to get actor instance: %w", err)
 	}
-	
+
 	return instance, nil
 }
 
@@ -90,7 +90,7 @@ func (r *ObservabilityRepositoryImpl) UpdateActorInstance(ctx context.Context, i
 			last_heartbeat = $6, updated_at = $7
 		WHERE id = $1
 	`
-	
+
 	result, err := r.db.ExecContext(ctx, query,
 		instance.ID,
 		instance.ActorType,
@@ -100,23 +100,23 @@ func (r *ObservabilityRepositoryImpl) UpdateActorInstance(ctx context.Context, i
 		instance.LastHeartbeat,
 		instance.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to update actor instance: %w", err)
 	}
-	
+
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
-	
+
 	if rowsAffected == 0 {
 		return &models.NotFoundError{
 			Resource: "actor_instance",
 			ID:       instance.ID.String(),
 		}
 	}
-	
+
 	return nil
 }
 
@@ -124,7 +124,7 @@ func (r *ObservabilityRepositoryImpl) UpdateActorInstance(ctx context.Context, i
 func (r *ObservabilityRepositoryImpl) ListActorInstances(ctx context.Context, actorType string, limit, offset int) ([]*models.ActorInstance, error) {
 	var query string
 	var args []interface{}
-	
+
 	if actorType != "" {
 		query = `
 			SELECT id, actor_type, actor_id, entity_id, status, last_heartbeat, created_at, updated_at
@@ -143,13 +143,13 @@ func (r *ObservabilityRepositoryImpl) ListActorInstances(ctx context.Context, ac
 		`
 		args = []interface{}{limit, offset}
 	}
-	
+
 	rows, err := r.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list actor instances: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var instances []*models.ActorInstance
 	for rows.Next() {
 		instance := &models.ActorInstance{}
@@ -168,11 +168,11 @@ func (r *ObservabilityRepositoryImpl) ListActorInstances(ctx context.Context, ac
 		}
 		instances = append(instances, instance)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating actor instances: %w", err)
 	}
-	
+
 	return instances, nil
 }
 
@@ -186,7 +186,7 @@ func (r *ObservabilityRepositoryImpl) CreateActorMessage(ctx context.Context, me
 			status, sent_at, received_at, processed_at, processing_duration_ms, error_message, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		message.ID,
 		message.TraceID,
@@ -206,11 +206,11 @@ func (r *ObservabilityRepositoryImpl) CreateActorMessage(ctx context.Context, me
 		message.ErrorMessage,
 		message.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create actor message: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -223,7 +223,7 @@ func (r *ObservabilityRepositoryImpl) GetActorMessage(ctx context.Context, id st
 		FROM actor_messages
 		WHERE id = $1
 	`
-	
+
 	message := &models.ActorMessage{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&message.ID,
@@ -244,7 +244,7 @@ func (r *ObservabilityRepositoryImpl) GetActorMessage(ctx context.Context, id st
 		&message.ErrorMessage,
 		&message.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -254,7 +254,7 @@ func (r *ObservabilityRepositoryImpl) GetActorMessage(ctx context.Context, id st
 		}
 		return nil, fmt.Errorf("failed to get actor message: %w", err)
 	}
-	
+
 	return message, nil
 }
 
@@ -262,7 +262,7 @@ func (r *ObservabilityRepositoryImpl) GetActorMessage(ctx context.Context, id st
 func (r *ObservabilityRepositoryImpl) ListActorMessages(ctx context.Context, fromActor, toActor string, limit, offset int) ([]*models.ActorMessage, error) {
 	var query string
 	var args []interface{}
-	
+
 	if fromActor != "" && toActor != "" {
 		query = `
 			SELECT id, trace_id, span_id, parent_span_id, sender_actor_type, sender_actor_id, 
@@ -307,7 +307,7 @@ func (r *ObservabilityRepositoryImpl) ListActorMessages(ctx context.Context, fro
 		`
 		args = []interface{}{limit, offset}
 	}
-	
+
 	return r.scanActorMessages(ctx, query, args...)
 }
 
@@ -317,12 +317,12 @@ func (r *ObservabilityRepositoryImpl) GetMessagesByTimeRange(ctx context.Context
 	if err != nil {
 		return nil, fmt.Errorf("invalid start time format: %w", err)
 	}
-	
+
 	endTimeParsed, err := time.Parse(time.RFC3339, endTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid end time format: %w", err)
 	}
-	
+
 	query := `
 		SELECT id, trace_id, span_id, parent_span_id, sender_actor_type, sender_actor_id, 
 			receiver_actor_type, receiver_actor_id, message_type, message_payload, status, 
@@ -332,7 +332,7 @@ func (r *ObservabilityRepositoryImpl) GetMessagesByTimeRange(ctx context.Context
 		ORDER BY created_at DESC
 		LIMIT $3 OFFSET $4
 	`
-	
+
 	return r.scanActorMessages(ctx, query, startTimeParsed, endTimeParsed, limit, offset)
 }
 
@@ -345,7 +345,7 @@ func (r *ObservabilityRepositoryImpl) CreateSystemMetric(ctx context.Context, me
 			actor_type, actor_id, timestamp, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		metric.ID,
 		metric.MetricName,
@@ -357,11 +357,11 @@ func (r *ObservabilityRepositoryImpl) CreateSystemMetric(ctx context.Context, me
 		metric.Timestamp,
 		metric.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create system metric: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -372,7 +372,7 @@ func (r *ObservabilityRepositoryImpl) GetSystemMetric(ctx context.Context, id st
 		FROM system_metrics
 		WHERE id = $1
 	`
-	
+
 	metric := &models.SystemMetric{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&metric.ID,
@@ -385,7 +385,7 @@ func (r *ObservabilityRepositoryImpl) GetSystemMetric(ctx context.Context, id st
 		&metric.Timestamp,
 		&metric.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -395,7 +395,7 @@ func (r *ObservabilityRepositoryImpl) GetSystemMetric(ctx context.Context, id st
 		}
 		return nil, fmt.Errorf("failed to get system metric: %w", err)
 	}
-	
+
 	return metric, nil
 }
 
@@ -403,7 +403,7 @@ func (r *ObservabilityRepositoryImpl) GetSystemMetric(ctx context.Context, id st
 func (r *ObservabilityRepositoryImpl) ListSystemMetrics(ctx context.Context, metricType string, limit, offset int) ([]*models.SystemMetric, error) {
 	var query string
 	var args []interface{}
-	
+
 	if metricType != "" {
 		query = `
 			SELECT id, metric_name, metric_type, metric_value, labels, actor_type, actor_id, timestamp, created_at
@@ -422,7 +422,7 @@ func (r *ObservabilityRepositoryImpl) ListSystemMetrics(ctx context.Context, met
 		`
 		args = []interface{}{limit, offset}
 	}
-	
+
 	return r.scanSystemMetrics(ctx, query, args...)
 }
 
@@ -432,12 +432,12 @@ func (r *ObservabilityRepositoryImpl) GetMetricsByTimeRange(ctx context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("invalid start time format: %w", err)
 	}
-	
+
 	endTimeParsed, err := time.Parse(time.RFC3339, endTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid end time format: %w", err)
 	}
-	
+
 	query := `
 		SELECT id, metric_name, metric_type, metric_value, labels, actor_type, actor_id, timestamp, created_at
 		FROM system_metrics
@@ -445,7 +445,7 @@ func (r *ObservabilityRepositoryImpl) GetMetricsByTimeRange(ctx context.Context,
 		ORDER BY timestamp DESC
 		LIMIT $3 OFFSET $4
 	`
-	
+
 	return r.scanSystemMetrics(ctx, query, startTimeParsed, endTimeParsed, limit, offset)
 }
 
@@ -458,7 +458,7 @@ func (r *ObservabilityRepositoryImpl) CreateDistributedTrace(ctx context.Context
 			actor_type, actor_id, start_time, end_time, duration_ms, status, tags, logs, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		trace.ID,
 		trace.TraceID,
@@ -475,11 +475,11 @@ func (r *ObservabilityRepositoryImpl) CreateDistributedTrace(ctx context.Context
 		trace.Logs,
 		trace.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create distributed trace: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -491,7 +491,7 @@ func (r *ObservabilityRepositoryImpl) GetDistributedTrace(ctx context.Context, i
 		FROM distributed_traces
 		WHERE id = $1
 	`
-	
+
 	trace := &models.DistributedTrace{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&trace.ID,
@@ -509,7 +509,7 @@ func (r *ObservabilityRepositoryImpl) GetDistributedTrace(ctx context.Context, i
 		&trace.Logs,
 		&trace.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -519,7 +519,7 @@ func (r *ObservabilityRepositoryImpl) GetDistributedTrace(ctx context.Context, i
 		}
 		return nil, fmt.Errorf("failed to get distributed trace: %w", err)
 	}
-	
+
 	return trace, nil
 }
 
@@ -532,7 +532,7 @@ func (r *ObservabilityRepositoryImpl) GetTracesByTraceID(ctx context.Context, tr
 		WHERE trace_id = $1
 		ORDER BY start_time ASC
 	`
-	
+
 	return r.scanDistributedTraces(ctx, query, traceID)
 }
 
@@ -540,7 +540,7 @@ func (r *ObservabilityRepositoryImpl) GetTracesByTraceID(ctx context.Context, tr
 func (r *ObservabilityRepositoryImpl) ListDistributedTraces(ctx context.Context, operation string, limit, offset int) ([]*models.DistributedTrace, error) {
 	var query string
 	var args []interface{}
-	
+
 	if operation != "" {
 		query = `
 			SELECT id, trace_id, span_id, parent_span_id, operation_name, actor_type, actor_id, 
@@ -561,7 +561,7 @@ func (r *ObservabilityRepositoryImpl) ListDistributedTraces(ctx context.Context,
 		`
 		args = []interface{}{limit, offset}
 	}
-	
+
 	return r.scanDistributedTraces(ctx, query, args...)
 }
 
@@ -574,7 +574,7 @@ func (r *ObservabilityRepositoryImpl) CreateEventLog(ctx context.Context, log *m
 			entity_type, entity_id, event_data, severity, message, timestamp, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		log.ID,
 		log.TraceID,
@@ -590,11 +590,11 @@ func (r *ObservabilityRepositoryImpl) CreateEventLog(ctx context.Context, log *m
 		log.Timestamp,
 		log.CreatedAt,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to create event log: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -606,7 +606,7 @@ func (r *ObservabilityRepositoryImpl) GetEventLog(ctx context.Context, id string
 		FROM event_logs
 		WHERE id = $1
 	`
-	
+
 	log := &models.EventLog{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&log.ID,
@@ -623,7 +623,7 @@ func (r *ObservabilityRepositoryImpl) GetEventLog(ctx context.Context, id string
 		&log.Timestamp,
 		&log.CreatedAt,
 	)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, &models.NotFoundError{
@@ -633,7 +633,7 @@ func (r *ObservabilityRepositoryImpl) GetEventLog(ctx context.Context, id string
 		}
 		return nil, fmt.Errorf("failed to get event log: %w", err)
 	}
-	
+
 	return log, nil
 }
 
@@ -641,7 +641,7 @@ func (r *ObservabilityRepositoryImpl) GetEventLog(ctx context.Context, id string
 func (r *ObservabilityRepositoryImpl) ListEventLogs(ctx context.Context, eventType, source string, limit, offset int) ([]*models.EventLog, error) {
 	var query string
 	var args []interface{}
-	
+
 	if eventType != "" && source != "" {
 		query = `
 			SELECT id, trace_id, event_type, event_category, actor_type, actor_id, entity_type, 
@@ -682,7 +682,7 @@ func (r *ObservabilityRepositoryImpl) ListEventLogs(ctx context.Context, eventTy
 		`
 		args = []interface{}{limit, offset}
 	}
-	
+
 	return r.scanEventLogs(ctx, query, args...)
 }
 
@@ -692,12 +692,12 @@ func (r *ObservabilityRepositoryImpl) GetEventLogsByTimeRange(ctx context.Contex
 	if err != nil {
 		return nil, fmt.Errorf("invalid start time format: %w", err)
 	}
-	
+
 	endTimeParsed, err := time.Parse(time.RFC3339, endTime)
 	if err != nil {
 		return nil, fmt.Errorf("invalid end time format: %w", err)
 	}
-	
+
 	query := `
 		SELECT id, trace_id, event_type, event_category, actor_type, actor_id, entity_type, 
 			entity_id, event_data, severity, message, timestamp, created_at
@@ -706,7 +706,7 @@ func (r *ObservabilityRepositoryImpl) GetEventLogsByTimeRange(ctx context.Contex
 		ORDER BY timestamp DESC
 		LIMIT $3 OFFSET $4
 	`
-	
+
 	return r.scanEventLogs(ctx, query, startTimeParsed, endTimeParsed, limit, offset)
 }
 
@@ -718,7 +718,7 @@ func (r *ObservabilityRepositoryImpl) scanActorMessages(ctx context.Context, que
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var messages []*models.ActorMessage
 	for rows.Next() {
 		message := &models.ActorMessage{}
@@ -746,11 +746,11 @@ func (r *ObservabilityRepositoryImpl) scanActorMessages(ctx context.Context, que
 		}
 		messages = append(messages, message)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating actor messages: %w", err)
 	}
-	
+
 	return messages, nil
 }
 
@@ -760,7 +760,7 @@ func (r *ObservabilityRepositoryImpl) scanSystemMetrics(ctx context.Context, que
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var metrics []*models.SystemMetric
 	for rows.Next() {
 		metric := &models.SystemMetric{}
@@ -780,11 +780,11 @@ func (r *ObservabilityRepositoryImpl) scanSystemMetrics(ctx context.Context, que
 		}
 		metrics = append(metrics, metric)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating system metrics: %w", err)
 	}
-	
+
 	return metrics, nil
 }
 
@@ -794,7 +794,7 @@ func (r *ObservabilityRepositoryImpl) scanDistributedTraces(ctx context.Context,
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var traces []*models.DistributedTrace
 	for rows.Next() {
 		trace := &models.DistributedTrace{}
@@ -819,11 +819,11 @@ func (r *ObservabilityRepositoryImpl) scanDistributedTraces(ctx context.Context,
 		}
 		traces = append(traces, trace)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating distributed traces: %w", err)
 	}
-	
+
 	return traces, nil
 }
 
@@ -833,7 +833,7 @@ func (r *ObservabilityRepositoryImpl) scanEventLogs(ctx context.Context, query s
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 	defer rows.Close()
-	
+
 	var logs []*models.EventLog
 	for rows.Next() {
 		log := &models.EventLog{}
@@ -857,10 +857,10 @@ func (r *ObservabilityRepositoryImpl) scanEventLogs(ctx context.Context, query s
 		}
 		logs = append(logs, log)
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating event logs: %w", err)
 	}
-	
+
 	return logs, nil
 }

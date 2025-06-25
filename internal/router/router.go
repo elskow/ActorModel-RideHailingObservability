@@ -304,7 +304,7 @@ func setupAdminRoutes(router *gin.Engine, cfg *RouterConfig) {
 				if cfg.ActorSystem != nil {
 					if cfg.ActorSystem.IsStarted() {
 						c.JSON(http.StatusOK, gin.H{
-							"status": "already_started",
+							"status":  "already_started",
 							"message": "Actor system is already running",
 						})
 						return

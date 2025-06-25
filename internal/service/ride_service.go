@@ -18,15 +18,15 @@ import (
 
 // RideService handles ride-related business logic
 type RideService struct {
-	userRepo       repository.UserRepository
-	driverRepo     repository.DriverRepository
-	passengerRepo  repository.PassengerRepository
-	tripRepo       repository.TripRepository
-	actorSystem    *actor.ActorSystem
-	metricsCollector *observability.MetricsCollector
+	userRepo           repository.UserRepository
+	driverRepo         repository.DriverRepository
+	passengerRepo      repository.PassengerRepository
+	tripRepo           repository.TripRepository
+	actorSystem        *actor.ActorSystem
+	metricsCollector   *observability.MetricsCollector
 	traditionalMonitor *traditional.TraditionalMonitor
-	logger         *logging.Logger
-	useActorModel  bool
+	logger             *logging.Logger
+	useActorModel      bool
 }
 
 // NewRideService creates a new ride service
@@ -409,14 +409,14 @@ func (rs *RideService) selectBestDriver(drivers []*models.Driver, pickup models.
 // calculateDriverScore calculates a score for driver selection
 func (rs *RideService) calculateDriverScore(driver *models.Driver, pickup models.Location) float64 {
 	distance := rs.calculateDistance(pickup.Latitude, pickup.Longitude, *driver.CurrentLatitude, *driver.CurrentLongitude)
-	
+
 	// Score based on distance (closer is better) and rating (higher is better)
 	// Normalize distance to 0-1 scale (assuming max 10km)
 	distanceScore := math.Max(0, 1.0-(distance/10.0))
-	
+
 	// Normalize rating to 0-1 scale (assuming max 5.0)
 	ratingScore := driver.Rating / 5.0
-	
+
 	// Weighted score: 70% distance, 30% rating
 	return (distanceScore * 0.7) + (ratingScore * 0.3)
 }
@@ -444,11 +444,11 @@ func (rs *RideService) calculateDistance(lat1, lng1, lat2, lng2 float64) float64
 // calculateEstimatedFare calculates estimated fare based on distance
 func (rs *RideService) calculateEstimatedFare(pickup, dropoff models.Location) float64 {
 	distance := rs.calculateDistance(pickup.Latitude, pickup.Longitude, dropoff.Latitude, dropoff.Longitude)
-	
+
 	// Simple fare calculation: base fare + distance rate
 	baseFare := 5.0
 	distanceRate := 2.0 // per km
-	
+
 	return baseFare + (distance * distanceRate)
 }
 
@@ -472,10 +472,10 @@ func (rs *RideService) ListRides(ctx context.Context, passengerID, driverID *str
 		duration := time.Since(start)
 		if rs.useActorModel {
 			rs.metricsCollector.RecordEvent("list_rides", "ride_service", "Rides listed", map[string]interface{}{
-				"limit":      limit,
-				"offset":     offset,
+				"limit":       limit,
+				"offset":      offset,
 				"duration_ms": duration.Milliseconds(),
-				"method":     "actor_model",
+				"method":      "actor_model",
 			})
 		} else {
 			rs.traditionalMonitor.RecordRequest("/api/rides", "GET", duration, 200)
