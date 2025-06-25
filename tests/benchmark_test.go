@@ -73,7 +73,10 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 	metricsCollector := observability.NewMetricsCollector(nil, nil, pkgCfg)
 
 	// Initialize traditional monitor
-	traditionalMonitor := traditional.NewTraditionalMonitor(nil, nil, internalCfg)
+	traditionalMonitor, err := traditional.NewTraditionalMonitor(internalCfg)
+	if err != nil {
+		b.Fatalf("Failed to create traditional monitor: %v", err)
+	}
 
 	// Create mock repositories
 	userRepo := &MockUserRepository{}

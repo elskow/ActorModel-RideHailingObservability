@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	"actor-model-observability/internal/logging"
 )
 
 // ActorState represents the current state of an actor
@@ -48,10 +48,10 @@ func NewBaseMessage(msgType string, payload interface{}, sender string) *BaseMes
 	}
 }
 
-func (m *BaseMessage) GetID() string        { return m.ID }
-func (m *BaseMessage) GetType() string      { return m.Type }
+func (m *BaseMessage) GetID() string           { return m.ID }
+func (m *BaseMessage) GetType() string         { return m.Type }
 func (m *BaseMessage) GetPayload() interface{} { return m.Payload }
-func (m *BaseMessage) GetSender() string    { return m.Sender }
+func (m *BaseMessage) GetSender() string       { return m.Sender }
 func (m *BaseMessage) GetTimestamp() time.Time { return m.Timestamp }
 
 // Actor represents the core actor interface
@@ -85,7 +85,7 @@ type BaseActor struct {
 	mailbox     chan Message
 	ctx         context.Context
 	cancel      context.CancelFunc
-	logger      *logrus.Entry
+	logger      *logging.Logger
 	metrics     ActorMetrics
 	metricsLock sync.RWMutex
 	startTime   time.Time
@@ -106,7 +106,7 @@ func NewBaseActor(id, actorType string, mailboxSize int, handler func(Message) e
 		actorType: actorType,
 		state:     ActorStateIdle,
 		mailbox:   make(chan Message, mailboxSize),
-		logger:    logrus.WithFields(logrus.Fields{"actor_id": id, "actor_type": actorType}),
+		logger:    logging.GetGlobalLogger().WithActor(id, actorType),
 		handler:   handler,
 		metrics: ActorMetrics{
 			LastActivity: time.Now(),
@@ -222,11 +222,7 @@ func (a *BaseActor) messageLoop() {
 func (a *BaseActor) processMessage(message Message) {
 	start := time.Now()
 
-	a.logger.WithFields(logrus.Fields{
-		"message_id":   message.GetID(),
-		"message_type": message.GetType(),
-		"sender":       message.GetSender(),
-	}).Debug("Processing message")
+	a.logger.WithMessage(message.GetID(), message.GetType(), message.GetSender(), a.id).Debug("Processing message")
 
 	var err error
 	if a.handler != nil {

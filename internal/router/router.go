@@ -77,7 +77,7 @@ func setupMiddleware(router *gin.Engine, cfg *RouterConfig) {
 	})
 
 	// Logging middleware
-	router.Use(middleware.LoggingMiddleware(cfg.Logger))
+	router.Use(middleware.LoggingMiddleware(cfg.Logger, cfg.Config.Logging.SkipPaths, cfg.Config.Logging.SkipUserAgents))
 
 	// CORS middleware
 	router.Use(middleware.CORSMiddleware())

@@ -8,47 +8,47 @@ import (
 
 	"actor-model-observability/internal/config"
 
+	"actor-model-observability/internal/logging"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/metric"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
 )
 
 // OTelMonitor implements OpenTelemetry-based monitoring
 type OTelMonitor struct {
 	config         *config.OpenTelemetryConfig
-	logger         *logrus.Entry
+	logger         *logging.Logger
 	meterProvider  *sdkmetric.MeterProvider
 	tracerProvider *sdktrace.TracerProvider
 	meter          metric.Meter
 	tracer         trace.Tracer
 
 	// Metrics instruments
-	httpRequestsTotal     metric.Int64Counter
-	httpRequestDuration   metric.Float64Histogram
-	databaseQueriesTotal  metric.Int64Counter
-	databaseQueryDuration metric.Float64Histogram
-	cacheOperationsTotal  metric.Int64Counter
+	httpRequestsTotal      metric.Int64Counter
+	httpRequestDuration    metric.Float64Histogram
+	databaseQueriesTotal   metric.Int64Counter
+	databaseQueryDuration  metric.Float64Histogram
+	cacheOperationsTotal   metric.Int64Counter
 	cacheOperationDuration metric.Float64Histogram
-	systemCPUUsage        metric.Float64Histogram
-	systemMemoryUsage     metric.Float64Histogram
-	systemDiskUsage       metric.Float64Histogram
-	businessMetrics       map[string]metric.Float64Histogram
+	systemCPUUsage         metric.Float64Histogram
+	systemMemoryUsage      metric.Float64Histogram
+	systemDiskUsage        metric.Float64Histogram
+	businessMetrics        map[string]metric.Float64Histogram
 }
 
 // NewOTelMonitor creates a new OpenTelemetry monitor
 func NewOTelMonitor(cfg *config.OpenTelemetryConfig) (*OTelMonitor, error) {
 	monitor := &OTelMonitor{
 		config:          cfg,
-		logger:          logrus.WithField("component", "otel_monitor"),
+		logger:          logging.GetGlobalLogger().WithComponent("otel_monitor"),
 		businessMetrics: make(map[string]metric.Float64Histogram),
 	}
 
@@ -127,12 +127,24 @@ func (om *OTelMonitor) initializeTracing() error {
 	var err error
 
 	switch om.config.TracingExporter {
-	case "jaeger":
-		exporter, err = jaeger.New(jaeger.WithCollectorEndpoint(
-			jaeger.WithEndpoint(om.config.JaegerEndpoint),
-		))
+	case "otlp":
+		exporter, err = otlptracehttp.New(context.Background(),
+			otlptracehttp.WithEndpoint("localhost:4318"),
+			otlptracehttp.WithInsecure(), // Use insecure for local development
+		)
 		if err != nil {
-			return fmt.Errorf("failed to create Jaeger exporter: %w", err)
+			return fmt.Errorf("failed to create OTLP exporter: %w", err)
+		}
+	case "jaeger":
+		// Deprecated: Jaeger exporter is no longer supported
+		// Falling back to OTLP exporter
+		om.logger.Warn("Jaeger exporter is deprecated, using OTLP instead")
+		exporter, err = otlptracehttp.New(context.Background(),
+			otlptracehttp.WithEndpoint("localhost:4318"),
+			otlptracehttp.WithInsecure(),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create OTLP exporter: %w", err)
 		}
 	default:
 		return fmt.Errorf("unsupported tracing exporter: %s", om.config.TracingExporter)
@@ -352,7 +364,7 @@ func (om *OTelMonitor) RecordBusinessMetrics(ctx context.Context, metricName str
 			metric.WithDescription(fmt.Sprintf("Business metric: %s", metricName)),
 		)
 		if err != nil {
-			om.logger.WithError(err).Errorf("Failed to create business metric: %s", metricName)
+			om.logger.WithError(err).Error("Failed to create business metric", "metric_name", metricName)
 			return
 		}
 		om.businessMetrics[metricName] = histogram

@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,9 +14,24 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// LoggingMiddleware creates a middleware for request logging
-func LoggingMiddleware(logger *logging.Logger) gin.HandlerFunc {
+// LoggingMiddleware creates a middleware for request logging with configurable filtering
+func LoggingMiddleware(logger *logging.Logger, skipPaths []string, skipUserAgents []string) gin.HandlerFunc {
 	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		// Check if path should be skipped
+		for _, skipPath := range skipPaths {
+			if strings.Contains(param.Path, skipPath) {
+				return ""
+			}
+		}
+
+		// Check if user agent should be skipped
+		userAgent := param.Request.UserAgent()
+		for _, skipUA := range skipUserAgents {
+			if strings.Contains(userAgent, skipUA) {
+				return ""
+			}
+		}
+
 		// Extract request ID from context
 		requestID := ""
 		if param.Keys != nil {
@@ -30,7 +46,7 @@ func LoggingMiddleware(logger *logging.Logger) gin.HandlerFunc {
 		logger.LogHTTPRequest(
 			param.Method,
 			param.Path,
-			param.Request.UserAgent(),
+			userAgent,
 			requestID,
 			param.StatusCode,
 			param.Latency.Milliseconds(),
@@ -67,7 +83,7 @@ func CORSMiddleware() gin.HandlerFunc {
 func RateLimitMiddleware() gin.HandlerFunc {
 	// Create a map to store rate limiters for each client IP
 	var (
-		mu      sync.RWMutex
+		mu       sync.RWMutex
 		limiters = make(map[string]*rate.Limiter)
 	)
 

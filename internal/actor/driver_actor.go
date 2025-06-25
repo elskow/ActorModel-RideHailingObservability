@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"actor-model-observability/internal/logging"
 	"actor-model-observability/internal/models"
-	"github.com/sirupsen/logrus"
 )
 
 // DriverActor handles driver-related operations
 type DriverActor struct {
 	*BaseActor
 	driver *models.Driver
-	logger *logrus.Entry
+	logger *logging.Logger
 }
 
 // Driver message types
@@ -108,11 +108,9 @@ func NewDriverActor(driver *models.Driver, system *ActorSystem) (*DriverActor, e
 	}
 
 	actorID := fmt.Sprintf("driver-%s", driver.ID)
-	logger := logrus.WithFields(logrus.Fields{
-		"actor_type": "driver",
-		"actor_id":   actorID,
-		"driver_id":  driver.ID,
-		"user_id":    driver.UserID,
+	logger := logging.GetGlobalLogger().WithActor(actorID, "driver").WithFields(logging.Fields{
+		"driver_id": driver.ID,
+		"user_id":   driver.UserID,
 	})
 
 	da := &DriverActor{
@@ -129,11 +127,7 @@ func NewDriverActor(driver *models.Driver, system *ActorSystem) (*DriverActor, e
 
 // handleMessage processes incoming messages
 func (da *DriverActor) handleMessage(message Message) error {
-	da.logger.WithFields(logrus.Fields{
-		"message_id":   message.GetID(),
-		"message_type": message.GetType(),
-		"sender":       message.GetSender(),
-	}).Debug("Processing driver message")
+	da.logger.WithMessage(message.GetID(), message.GetType(), message.GetSender(), da.GetID()).Debug("Processing driver message")
 
 	switch message.GetType() {
 	case MsgTypeRideRequest:
@@ -153,7 +147,7 @@ func (da *DriverActor) handleRideRequest(message Message) error {
 		return fmt.Errorf("failed to unmarshal ride request payload: %w", err)
 	}
 
-	da.logger.WithFields(logrus.Fields{
+	da.logger.WithFields(logging.Fields{
 		"trip_id":        payload.TripID,
 		"passenger_id":   payload.PassengerID,
 		"passenger_name": payload.PassengerName,
@@ -186,7 +180,7 @@ func (da *DriverActor) handlePassengerRated(message Message) error {
 		return fmt.Errorf("failed to unmarshal passenger rated payload: %w", err)
 	}
 
-	da.logger.WithFields(logrus.Fields{
+	da.logger.WithFields(logging.Fields{
 		"trip_id":      payload.TripID,
 		"passenger_id": payload.PassengerID,
 		"rating":       payload.Rating,
@@ -230,7 +224,7 @@ func (da *DriverActor) GoOnline(system *ActorSystem, lat, lng float64) error {
 		return fmt.Errorf("failed to send go online message: %w", err)
 	}
 
-	da.logger.WithFields(logrus.Fields{
+	da.logger.WithFields(logging.Fields{
 		"lat": lat,
 		"lng": lng,
 	}).Info("Driver went online")
@@ -278,7 +272,7 @@ func (da *DriverActor) acceptRideRequest(tripID string) error {
 func (da *DriverActor) rejectRideRequest(tripID, reason string) error {
 	// Here you would send to trip management service
 	// For now, just log the rejection
-	da.logger.WithFields(logrus.Fields{
+	da.logger.WithFields(logging.Fields{
 		"trip_id": tripID,
 		"reason":  reason,
 	}).Info("Ride request rejected")
@@ -302,7 +296,7 @@ func (da *DriverActor) StartRide(system *ActorSystem, tripID string, startLat, s
 		return fmt.Errorf("failed to send start ride message: %w", err)
 	}
 
-	da.logger.WithFields(logrus.Fields{
+	da.logger.WithFields(logging.Fields{
 		"trip_id":   tripID,
 		"start_lat": startLat,
 		"start_lng": startLng,
@@ -333,7 +327,7 @@ func (da *DriverActor) CompleteRide(system *ActorSystem, tripID string, endLat, 
 		return fmt.Errorf("failed to send complete ride message: %w", err)
 	}
 
-	da.logger.WithFields(logrus.Fields{
+	da.logger.WithFields(logging.Fields{
 		"trip_id":  tripID,
 		"end_lat":  endLat,
 		"end_lng":  endLng,

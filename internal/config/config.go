@@ -65,19 +65,21 @@ type ActorConfig struct {
 
 // LoggingConfig holds logging configuration
 type LoggingConfig struct {
-	Level      string // debug, info, warn, error
-	Format     string // json, text
-	Output     string // stdout, file
-	FilePath   string
-	MaxSize    int // megabytes
-	MaxBackups int
-	MaxAge     int // days
-	Compress   bool
+	Level          string // debug, info, warn, error
+	Format         string // json, text
+	Output         string // stdout, file
+	FilePath       string
+	MaxSize        int // megabytes
+	MaxBackups     int
+	MaxAge         int // days
+	Compress       bool
+	SkipPaths      []string // HTTP paths to skip logging
+	SkipUserAgents []string // User agents to skip logging
 }
 
 // ObservabilityConfig holds observability configuration
 type ObservabilityConfig struct {
-	MetricsInterval    time.Duration
+	MetricsInterval time.Duration
 }
 
 // MetricsConfig holds metrics collection configuration
@@ -143,17 +145,19 @@ func Load() (*Config, error) {
 			SupervisionStrategy: getEnv("ACTOR_SUPERVISION_STRATEGY", "restart"),
 		},
 		Logging: LoggingConfig{
-			Level:      getEnv("LOG_LEVEL", "info"),
-			Format:     getEnv("LOG_FORMAT", "json"),
-			Output:     getEnv("LOG_OUTPUT", "stdout"),
-			FilePath:   getEnv("LOG_FILE_PATH", "./logs/app.log"),
-			MaxSize:    getIntEnv("LOG_MAX_SIZE", 100),
-			MaxBackups: getIntEnv("LOG_MAX_BACKUPS", 3),
-			MaxAge:     getIntEnv("LOG_MAX_AGE", 28),
-			Compress:   getBoolEnv("LOG_COMPRESS", true),
+			Level:          getEnv("LOG_LEVEL", "info"),
+			Format:         getEnv("LOG_FORMAT", "json"),
+			Output:         getEnv("LOG_OUTPUT", "stdout"),
+			FilePath:       getEnv("LOG_FILE_PATH", "./logs/app.log"),
+			MaxSize:        getIntEnv("LOG_MAX_SIZE", 100),
+			MaxBackups:     getIntEnv("LOG_MAX_BACKUPS", 3),
+			MaxAge:         getIntEnv("LOG_MAX_AGE", 28),
+			Compress:       getBoolEnv("LOG_COMPRESS", true),
+			SkipPaths:      getStringSliceEnv("LOG_SKIP_PATHS", []string{"/metrics", "/health", "/prometheus"}),
+			SkipUserAgents: getStringSliceEnv("LOG_SKIP_USER_AGENTS", []string{"Prometheus", "kube-probe"}),
 		},
 		Observability: ObservabilityConfig{
-			MetricsInterval:    getDurationEnv("METRICS_INTERVAL", 10*time.Second),
+			MetricsInterval: getDurationEnv("METRICS_INTERVAL", 10*time.Second),
 		},
 		Metrics: MetricsConfig{
 			CollectInterval: getDurationEnv("METRICS_COLLECT_INTERVAL", 30*time.Second),
@@ -168,9 +172,9 @@ func Load() (*Config, error) {
 			MetricsEnabled:     getBoolEnv("OTEL_METRICS_ENABLED", true),
 			TracingEnabled:     getBoolEnv("OTEL_TRACING_ENABLED", true),
 			MetricsExporter:    getEnv("OTEL_METRICS_EXPORTER", "prometheus"),
-			TracingExporter:    getEnv("OTEL_TRACING_EXPORTER", "jaeger"),
+			TracingExporter:    getEnv("OTEL_TRACING_EXPORTER", "otlp"),
 			JaegerEndpoint:     getEnv("OTEL_JAEGER_ENDPOINT", "http://localhost:14268/api/traces"),
-			OTLPEndpoint:       getEnv("OTEL_OTLP_ENDPOINT", "http://localhost:4317"),
+			OTLPEndpoint:     getEnv("OTEL_OTLP_ENDPOINT", "localhost:4318"),
 			SampleRate:         getFloatEnv("OTEL_SAMPLE_RATE", 1.0),
 			MetricsInterval:    getDurationEnv("OTEL_METRICS_INTERVAL", 10*time.Second),
 			ResourceAttributes: getMapEnv("OTEL_RESOURCE_ATTRIBUTES"),
@@ -344,6 +348,24 @@ func getMapEnv(key string) map[string]string {
 	return result
 }
 
+// getStringSliceEnv gets a string slice from environment variable (comma-separated)
+func getStringSliceEnv(key string, defaultValue []string) []string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	var result []string
+	parts := strings.Split(value, ",")
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
 // Development returns a configuration suitable for development
 func Development() *Config {
 	return &Config{
@@ -383,14 +405,16 @@ func Development() *Config {
 			SupervisionStrategy: "restart",
 		},
 		Logging: LoggingConfig{
-			Level:      "debug",
-			Format:     "text",
-			Output:     "stdout",
-			FilePath:   "",
-			MaxSize:    50,
-			MaxBackups: 2,
-			MaxAge:     7,
-			Compress:   false,
+			Level:          "debug",
+			Format:         "text",
+			Output:         "stdout",
+			FilePath:       "",
+			MaxSize:        50,
+			MaxBackups:     2,
+			MaxAge:         7,
+			Compress:       false,
+			SkipPaths:      []string{"/metrics", "/health", "/prometheus"},
+			SkipUserAgents: []string{"Prometheus", "kube-probe"},
 		},
 		Metrics: MetricsConfig{
 			CollectInterval: 30 * time.Second,
@@ -440,14 +464,16 @@ func Production() *Config {
 			SupervisionStrategy: "restart",
 		},
 		Logging: LoggingConfig{
-			Level:      "info",
-			Format:     "json",
-			Output:     "file",
-			FilePath:   "/var/log/actor-observability/app.log",
-			MaxSize:    200,
-			MaxBackups: 10,
-			MaxAge:     30,
-			Compress:   true,
+			Level:          "info",
+			Format:         "json",
+			Output:         "file",
+			FilePath:       "/var/log/actor-observability/app.log",
+			MaxSize:        200,
+			MaxBackups:     10,
+			MaxAge:         30,
+			Compress:       true,
+			SkipPaths:      []string{"/metrics", "/health", "/prometheus"},
+			SkipUserAgents: []string{"Prometheus", "kube-probe"},
 		},
 		Metrics: MetricsConfig{
 			CollectInterval: 60 * time.Second,

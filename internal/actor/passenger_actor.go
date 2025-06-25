@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"actor-model-observability/internal/logging"
 	"actor-model-observability/internal/models"
-	"github.com/sirupsen/logrus"
 )
 
 // PassengerActor handles passenger-related operations
 type PassengerActor struct {
 	*BaseActor
 	passenger *models.Passenger
-	logger    *logrus.Entry
+	logger    *logging.Logger
 }
 
 // Passenger message types
@@ -30,31 +30,31 @@ const (
 
 // Passenger message payloads
 type RequestRidePayload struct {
-	PickupLat    float64 `json:"pickup_lat"`
-	PickupLng    float64 `json:"pickup_lng"`
-	DropoffLat   float64 `json:"dropoff_lat"`
-	DropoffLng   float64 `json:"dropoff_lng"`
-	PickupAddr   string  `json:"pickup_address"`
-	DropoffAddr  string  `json:"dropoff_address"`
-	RequestedAt  time.Time `json:"requested_at"`
+	PickupLat   float64   `json:"pickup_lat"`
+	PickupLng   float64   `json:"pickup_lng"`
+	DropoffLat  float64   `json:"dropoff_lat"`
+	DropoffLng  float64   `json:"dropoff_lng"`
+	PickupAddr  string    `json:"pickup_address"`
+	DropoffAddr string    `json:"dropoff_address"`
+	RequestedAt time.Time `json:"requested_at"`
 }
 
 type CancelRidePayload struct {
-	TripID     string `json:"trip_id"`
-	Reason     string `json:"reason"`
+	TripID      string    `json:"trip_id"`
+	Reason      string    `json:"reason"`
 	CancelledAt time.Time `json:"cancelled_at"`
 }
 
 type RideMatchedPayload struct {
-	TripID       string  `json:"trip_id"`
-	DriverID     string  `json:"driver_id"`
-	DriverName   string  `json:"driver_name"`
-	DriverPhone  string  `json:"driver_phone"`
-	VehicleInfo  string  `json:"vehicle_info"`
-	DriverLat    float64 `json:"driver_lat"`
-	DriverLng    float64 `json:"driver_lng"`
+	TripID       string        `json:"trip_id"`
+	DriverID     string        `json:"driver_id"`
+	DriverName   string        `json:"driver_name"`
+	DriverPhone  string        `json:"driver_phone"`
+	VehicleInfo  string        `json:"vehicle_info"`
+	DriverLat    float64       `json:"driver_lat"`
+	DriverLng    float64       `json:"driver_lng"`
 	EstimatedETA time.Duration `json:"estimated_eta"`
-	MatchedAt    time.Time `json:"matched_at"`
+	MatchedAt    time.Time     `json:"matched_at"`
 }
 
 type RideStartedPayload struct {
@@ -84,10 +84,10 @@ type UpdateLocationPayload struct {
 }
 
 type RateDriverPayload struct {
-	TripID   string  `json:"trip_id"`
-	DriverID string  `json:"driver_id"`
-	Rating   float64 `json:"rating"`
-	Comment  string  `json:"comment"`
+	TripID   string    `json:"trip_id"`
+	DriverID string    `json:"driver_id"`
+	Rating   float64   `json:"rating"`
+	Comment  string    `json:"comment"`
 	RatedAt  time.Time `json:"rated_at"`
 }
 
@@ -98,9 +98,7 @@ func NewPassengerActor(passenger *models.Passenger, system *ActorSystem) (*Passe
 	}
 
 	actorID := fmt.Sprintf("passenger-%s", passenger.ID)
-	logger := logrus.WithFields(logrus.Fields{
-		"actor_type":   "passenger",
-		"actor_id":     actorID,
+	logger := logging.GetGlobalLogger().WithActor(actorID, "passenger").WithFields(logging.Fields{
 		"passenger_id": passenger.ID,
 		"user_id":      passenger.UserID,
 	})
@@ -119,11 +117,7 @@ func NewPassengerActor(passenger *models.Passenger, system *ActorSystem) (*Passe
 
 // handleMessage processes incoming messages
 func (pa *PassengerActor) handleMessage(message Message) error {
-	pa.logger.WithFields(logrus.Fields{
-		"message_id":   message.GetID(),
-		"message_type": message.GetType(),
-		"sender":       message.GetSender(),
-	}).Debug("Processing passenger message")
+	pa.logger.WithMessage(message.GetID(), message.GetType(), message.GetSender(), pa.GetID()).Debug("Processing passenger message")
 
 	switch message.GetType() {
 	case MsgTypeRideMatched:
@@ -147,7 +141,7 @@ func (pa *PassengerActor) handleRideMatched(message Message) error {
 		return fmt.Errorf("failed to unmarshal ride matched payload: %w", err)
 	}
 
-	pa.logger.WithFields(logrus.Fields{
+	pa.logger.WithFields(logging.Fields{
 		"trip_id":       payload.TripID,
 		"driver_id":     payload.DriverID,
 		"driver_name":   payload.DriverName,
@@ -170,7 +164,7 @@ func (pa *PassengerActor) handleRideStarted(message Message) error {
 		return fmt.Errorf("failed to unmarshal ride started payload: %w", err)
 	}
 
-	pa.logger.WithFields(logrus.Fields{
+	pa.logger.WithFields(logging.Fields{
 		"trip_id":    payload.TripID,
 		"started_at": payload.StartedAt,
 	}).Info("Ride started")
@@ -191,7 +185,7 @@ func (pa *PassengerActor) handleRideCompleted(message Message) error {
 		return fmt.Errorf("failed to unmarshal ride completed payload: %w", err)
 	}
 
-	pa.logger.WithFields(logrus.Fields{
+	pa.logger.WithFields(logging.Fields{
 		"trip_id":      payload.TripID,
 		"fare":         payload.Fare,
 		"distance":     payload.Distance,
@@ -219,11 +213,11 @@ func (pa *PassengerActor) handleRideCancelled(message Message) error {
 		return fmt.Errorf("failed to unmarshal ride cancelled payload: %w", err)
 	}
 
-	pa.logger.WithFields(logrus.Fields{
-		"trip_id":       payload.TripID,
-		"reason":        payload.Reason,
-		"cancelled_by":  payload.CancelledBy,
-		"cancelled_at":  payload.CancelledAt,
+	pa.logger.WithFields(logging.Fields{
+		"trip_id":      payload.TripID,
+		"reason":       payload.Reason,
+		"cancelled_by": payload.CancelledBy,
+		"cancelled_at": payload.CancelledAt,
 	}).Info("Ride cancelled")
 
 	// Here you could:
@@ -254,13 +248,13 @@ func (pa *PassengerActor) RequestRide(system *ActorSystem, pickup, dropoff model
 		return fmt.Errorf("failed to send ride request: %w", err)
 	}
 
-	pa.logger.WithFields(logrus.Fields{
-		"pickup_lat":    pickup.Latitude,
-		"pickup_lng":    pickup.Longitude,
-		"dropoff_lat":   dropoff.Latitude,
-		"dropoff_lng":   dropoff.Longitude,
-		"pickup_addr":   pickupAddr,
-		"dropoff_addr":  dropoffAddr,
+	pa.logger.WithFields(logging.Fields{
+		"pickup_lat":   pickup.Latitude,
+		"pickup_lng":   pickup.Longitude,
+		"dropoff_lat":  dropoff.Latitude,
+		"dropoff_lng":  dropoff.Longitude,
+		"pickup_addr":  pickupAddr,
+		"dropoff_addr": dropoffAddr,
 	}).Info("Ride request sent")
 
 	return nil
@@ -281,7 +275,7 @@ func (pa *PassengerActor) CancelRide(system *ActorSystem, tripID, reason string)
 		return fmt.Errorf("failed to send cancellation request: %w", err)
 	}
 
-	pa.logger.WithFields(logrus.Fields{
+	pa.logger.WithFields(logging.Fields{
 		"trip_id": tripID,
 		"reason":  reason,
 	}).Info("Ride cancellation sent")
@@ -310,7 +304,7 @@ func (pa *PassengerActor) RateDriver(system *ActorSystem, tripID, driverID strin
 		return fmt.Errorf("failed to send driver rating: %w", err)
 	}
 
-	pa.logger.WithFields(logrus.Fields{
+	pa.logger.WithFields(logging.Fields{
 		"trip_id":   tripID,
 		"driver_id": driverID,
 		"rating":    rating,

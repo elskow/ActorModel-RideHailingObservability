@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"actor-model-observability/internal/logging"
 )
 
 // SupervisionStrategy defines how to handle actor failures
@@ -44,7 +44,7 @@ type ActorSystem struct {
 	actorsMutex sync.RWMutex
 	ctx         context.Context
 	cancel      context.CancelFunc
-	logger      *logrus.Entry
+	logger      *logging.Logger
 	metrics     SystemMetrics
 	metricsLock sync.RWMutex
 	startTime   time.Time
@@ -62,7 +62,7 @@ func NewActorSystem(name string) *ActorSystem {
 	return &ActorSystem{
 		name:    name,
 		actors:  make(map[string]*ActorRef),
-		logger:  logrus.WithField("system", name),
+		logger:  logging.GetGlobalLogger().WithComponent("actor_system").WithField("system", name),
 		metrics: SystemMetrics{
 			LastMetricsUpdate: time.Now(),
 		},
@@ -95,7 +95,7 @@ func (s *ActorSystem) Stop() error {
 	s.actorsMutex.Lock()
 	for _, actorRef := range s.actors {
 		if err := actorRef.Actor.Stop(); err != nil {
-			s.logger.WithError(err).Errorf("Failed to stop actor %s", actorRef.ID)
+			s.logger.WithError(err).Error("Failed to stop actor", "actor_id", actorRef.ID)
 		}
 	}
 	s.actorsMutex.Unlock()
@@ -149,7 +149,7 @@ func (s *ActorSystem) SpawnActor(actorType, actorID string, mailboxSize int, han
 		s.onActorStarted(actorID)
 	}
 
-	s.logger.WithFields(logrus.Fields{
+	s.logger.WithFields(logging.Fields{
 		"actor_id":   actorID,
 		"actor_type": actorType,
 	}).Info("Actor spawned")
