@@ -168,9 +168,13 @@ CREATE TABLE traditional_logs (
 CREATE TABLE traditional_metrics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     metric_name VARCHAR(100) NOT NULL,
-    value DECIMAL(15, 6) NOT NULL,
+    metric_type VARCHAR(50) NOT NULL,
+    metric_value DECIMAL(15, 6) NOT NULL,
     labels JSONB,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    service_name VARCHAR(100),
+    instance_id VARCHAR(100),
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes for performance optimization
@@ -236,6 +240,8 @@ CREATE INDEX idx_traditional_logs_service ON traditional_logs(service_name);
 CREATE INDEX idx_traditional_logs_timestamp ON traditional_logs(timestamp);
 
 CREATE INDEX idx_traditional_metrics_name ON traditional_metrics(metric_name);
+CREATE INDEX idx_traditional_metrics_type ON traditional_metrics(metric_type);
+CREATE INDEX idx_traditional_metrics_service ON traditional_metrics(service_name);
 CREATE INDEX idx_traditional_metrics_timestamp ON traditional_metrics(timestamp);
 
 -- Functions for automatic timestamp updates

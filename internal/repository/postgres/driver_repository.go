@@ -25,9 +25,9 @@ func NewDriverRepository(db *sql.DB) repository.DriverRepository {
 // Create creates a new driver in the database
 func (r *DriverRepositoryImpl) Create(ctx context.Context, driver *models.Driver) error {
 	query := `
-		INSERT INTO drivers (id, user_id, license_number, vehicle_make, vehicle_model, 
-			vehicle_year, vehicle_plate, status, current_lat, current_lng, rating, total_trips, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		INSERT INTO drivers (id, user_id, license_number, vehicle_type, vehicle_plate, 
+			status, current_latitude, current_longitude, rating, total_trips, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 	
 	_, err := r.db.ExecContext(ctx, query,
@@ -79,8 +79,8 @@ func (r *DriverRepositoryImpl) Create(ctx context.Context, driver *models.Driver
 // GetByID retrieves a driver by ID
 func (r *DriverRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Driver, error) {
 	query := `
-		SELECT id, user_id, license_number, vehicle_make, vehicle_model, vehicle_year, 
-			vehicle_plate, status, current_lat, current_lng, rating, total_trips, created_at, updated_at
+		SELECT id, user_id, license_number, vehicle_type, vehicle_plate, status, 
+			current_latitude, current_longitude, rating, total_trips, created_at, updated_at
 		FROM drivers
 		WHERE id = $1
 	`
@@ -117,8 +117,8 @@ func (r *DriverRepositoryImpl) GetByID(ctx context.Context, id string) (*models.
 // GetByUserID retrieves a driver by user ID
 func (r *DriverRepositoryImpl) GetByUserID(ctx context.Context, userID string) (*models.Driver, error) {
 	query := `
-		SELECT id, user_id, license_number, vehicle_make, vehicle_model, vehicle_year, 
-			vehicle_plate, status, current_lat, current_lng, rating, total_trips, created_at, updated_at
+		SELECT id, user_id, license_number, vehicle_type, vehicle_plate, status, 
+			current_latitude, current_longitude, rating, total_trips, created_at, updated_at
 		FROM drivers
 		WHERE user_id = $1
 	`
@@ -156,9 +156,8 @@ func (r *DriverRepositoryImpl) GetByUserID(ctx context.Context, userID string) (
 func (r *DriverRepositoryImpl) Update(ctx context.Context, driver *models.Driver) error {
 	query := `
 		UPDATE drivers
-		SET license_number = $2, vehicle_make = $3, vehicle_model = $4, vehicle_year = $5,
-			vehicle_plate = $6, status = $7, current_lat = $8, current_lng = $9, 
-			rating = $10, total_trips = $11, updated_at = $12
+		SET license_number = $2, vehicle_type = $3, vehicle_plate = $4, status = $5, 
+			current_latitude = $6, current_longitude = $7, rating = $8, total_trips = $9, updated_at = $10
 		WHERE id = $1
 	`
 	
@@ -238,8 +237,8 @@ func (r *DriverRepositoryImpl) Delete(ctx context.Context, id string) error {
 // GetOnlineDrivers retrieves all online drivers
 func (r *DriverRepositoryImpl) GetOnlineDrivers(ctx context.Context) ([]*models.Driver, error) {
 	query := `
-		SELECT id, user_id, license_number, vehicle_make, vehicle_model, vehicle_year, 
-			vehicle_plate, status, current_lat, current_lng, rating, total_trips, created_at, updated_at
+		SELECT id, user_id, license_number, vehicle_type, vehicle_plate, status, 
+			current_latitude, current_longitude, rating, total_trips, created_at, updated_at
 		FROM drivers
 		WHERE status = 'online'
 		ORDER BY rating DESC, total_trips DESC
@@ -285,19 +284,19 @@ func (r *DriverRepositoryImpl) GetOnlineDrivers(ctx context.Context) ([]*models.
 func (r *DriverRepositoryImpl) GetDriversInRadius(ctx context.Context, lat, lng, radiusKm float64) ([]*models.Driver, error) {
 	// Using Haversine formula to calculate distance
 	query := `
-		SELECT id, user_id, license_number, vehicle_make, vehicle_model, vehicle_year, 
-			vehicle_plate, status, current_lat, current_lng, rating, total_trips, created_at, updated_at,
+		SELECT id, user_id, license_number, vehicle_type, vehicle_plate, status, 
+			current_latitude, current_longitude, rating, total_trips, created_at, updated_at,
 			(
 				6371 * acos(
-					cos(radians($1)) * cos(radians(current_lat)) * 
-					cos(radians(current_lng) - radians($2)) + 
-					sin(radians($1)) * sin(radians(current_lat))
+					cos(radians($1)) * cos(radians(current_latitude)) *
+					cos(radians(current_longitude) - radians($2)) +
+					sin(radians($1)) * sin(radians(current_latitude))
 				)
 			) AS distance
 		FROM drivers
 		WHERE status = 'online'
-			AND current_lat IS NOT NULL 
-			AND current_lng IS NOT NULL
+			AND current_latitude IS NOT NULL
+			AND current_longitude IS NOT NULL
 		HAVING distance <= $3
 		ORDER BY distance ASC, rating DESC
 	`
@@ -344,7 +343,7 @@ func (r *DriverRepositoryImpl) GetDriversInRadius(ctx context.Context, lat, lng,
 func (r *DriverRepositoryImpl) UpdateLocation(ctx context.Context, driverID string, lat, lng float64) error {
 	query := `
 		UPDATE drivers
-		SET current_lat = $2, current_lng = $3, updated_at = CURRENT_TIMESTAMP
+		SET current_latitude = $2, current_longitude = $3, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 	`
 	
@@ -399,8 +398,8 @@ func (r *DriverRepositoryImpl) UpdateStatus(ctx context.Context, driverID string
 // List retrieves a list of drivers with pagination
 func (r *DriverRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*models.Driver, error) {
 	query := `
-		SELECT id, user_id, license_number, vehicle_make, vehicle_model, vehicle_year, 
-			vehicle_plate, status, current_lat, current_lng, rating, total_trips, created_at, updated_at
+		SELECT id, user_id, license_number, vehicle_type, vehicle_plate, status, 
+			current_latitude, current_longitude, rating, total_trips, created_at, updated_at
 		FROM drivers
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2

@@ -236,7 +236,7 @@ func (h *RideHandler) CancelRide(c *gin.Context) {
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/rides/{trip_id}/status [get]
 func (h *RideHandler) GetRideStatus(c *gin.Context) {
-	tripIDStr := c.Param("trip_id")
+	tripIDStr := c.Param("id")
 	tripID, err := uuid.Parse(tripIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{

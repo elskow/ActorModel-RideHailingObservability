@@ -429,7 +429,7 @@ func (h *UserHandler) GetDriver(c *gin.Context) {
 		return
 	}
 
-	driver, err := h.driverRepo.GetByUserID(c.Request.Context(), userID.String())
+	_, err = h.driverRepo.GetByUserID(c.Request.Context(), userID.String())
 	if err != nil {
 		switch err.(type) {
 		case *models.NotFoundError:
@@ -446,7 +446,7 @@ func (h *UserHandler) GetDriver(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, driver)
+	c.JSON(http.StatusOK, gin.H{"message": "Driver location updated successfully"})
 }
 
 // UpdateDriverLocation handles driver location updates
@@ -463,12 +463,12 @@ func (h *UserHandler) GetDriver(c *gin.Context) {
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/users/{user_id}/driver/location [put]
 func (h *UserHandler) UpdateDriverLocation(c *gin.Context) {
-	userIDStr := c.Param("user_id")
-	userID, err := uuid.Parse(userIDStr)
+	driverIDStr := c.Param("id")
+	driverID, err := uuid.Parse(driverIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "Invalid user ID",
-			Message: "User ID must be a valid UUID",
+			Error:   "Invalid driver ID",
+			Message: "Driver ID must be a valid UUID",
 		})
 		return
 	}
@@ -482,26 +482,8 @@ func (h *UserHandler) UpdateDriverLocation(c *gin.Context) {
 		return
 	}
 
-	// Get existing driver
-	driver, err := h.driverRepo.GetByUserID(c.Request.Context(), userID.String())
-	if err != nil {
-		switch err.(type) {
-		case *models.NotFoundError:
-			c.JSON(http.StatusNotFound, ErrorResponse{
-				Error:   "Driver not found",
-				Message: err.Error(),
-			})
-		default:
-			c.JSON(http.StatusInternalServerError, ErrorResponse{
-				Error:   "Internal server error",
-				Message: "Failed to get driver",
-			})
-		}
-		return
-	}
-
-	// Update location
-	err = h.driverRepo.UpdateLocation(c.Request.Context(), driver.ID.String(), req.Latitude, req.Longitude)
+	// Update location directly using driver ID
+	err = h.driverRepo.UpdateLocation(c.Request.Context(), driverID.String(), req.Latitude, req.Longitude)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error:   "Internal server error",
@@ -510,7 +492,7 @@ func (h *UserHandler) UpdateDriverLocation(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, driver)
+	c.JSON(http.StatusOK, gin.H{"message": "Driver location updated successfully"})
 }
 
 // UpdateDriverStatus handles driver status updates
@@ -527,12 +509,12 @@ func (h *UserHandler) UpdateDriverLocation(c *gin.Context) {
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/users/{user_id}/driver/status [put]
 func (h *UserHandler) UpdateDriverStatus(c *gin.Context) {
-	userIDStr := c.Param("user_id")
-	userID, err := uuid.Parse(userIDStr)
+	driverIDStr := c.Param("id")
+	driverID, err := uuid.Parse(driverIDStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, ErrorResponse{
-			Error:   "Invalid user ID",
-			Message: "User ID must be a valid UUID",
+			Error:   "Invalid driver ID",
+			Message: "Driver ID must be a valid UUID",
 		})
 		return
 	}
@@ -546,30 +528,9 @@ func (h *UserHandler) UpdateDriverStatus(c *gin.Context) {
 		return
 	}
 
-	// Get existing driver
-	driver, err := h.driverRepo.GetByUserID(c.Request.Context(), userID.String())
-	if err != nil {
-		switch err.(type) {
-		case *models.NotFoundError:
-			c.JSON(http.StatusNotFound, ErrorResponse{
-				Error:   "Driver not found",
-				Message: err.Error(),
-			})
-		default:
-			c.JSON(http.StatusInternalServerError, ErrorResponse{
-				Error:   "Internal server error",
-				Message: "Failed to get driver",
-			})
-		}
-		return
-	}
-
-	// Update status
+	// Update status directly using driver ID
 	newStatus := models.DriverStatus(req.Status)
-	driver.SetStatus(newStatus)
-
-	// Save updated driver
-	err = h.driverRepo.Update(c.Request.Context(), driver)
+	err = h.driverRepo.UpdateStatus(c.Request.Context(), driverID.String(), newStatus)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error:   "Internal server error",
@@ -578,7 +539,7 @@ func (h *UserHandler) UpdateDriverStatus(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, driver)
+	c.JSON(http.StatusOK, gin.H{"message": "Driver status updated successfully"})
 }
 
 // ListUsers handles user listing with pagination

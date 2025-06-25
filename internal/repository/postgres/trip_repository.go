@@ -25,11 +25,11 @@ func NewTripRepository(db *sql.DB) repository.TripRepository {
 // Create creates a new trip in the database
 func (r *TripRepositoryImpl) Create(ctx context.Context, trip *models.Trip) error {
 	query := `
-		INSERT INTO trips (id, passenger_id, driver_id, status, pickup_lat, pickup_lng, 
-			dropoff_lat, dropoff_lng, pickup_address, dropoff_address, fare, distance, 
-			duration, requested_at, matched_at, started_at, completed_at, cancelled_at, 
-			cancellation_reason, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+		INSERT INTO trips (id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
+			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
+			duration_minutes, requested_at, matched_at, pickup_at, completed_at, cancelled_at, 
+			created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
 	`
 	
 	_, err := r.db.ExecContext(ctx, query,
@@ -84,7 +84,7 @@ func (r *TripRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Tr
 	query := `
 		SELECT id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
 			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
-			duration_minutes, requested_at, matched_at, pickup_at, completed_at, cancelled_at, 
+			duration_minutes, requested_at, matched_at, accepted_at, pickup_at, completed_at, cancelled_at, 
 			created_at, updated_at
 		FROM trips
 		WHERE id = $1
@@ -107,6 +107,7 @@ func (r *TripRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Tr
 		&trip.DurationMinutes,
 		&trip.RequestedAt,
 		&trip.MatchedAt,
+		&trip.AcceptedAt,
 		&trip.PickupAt,
 		&trip.CompletedAt,
 		&trip.CancelledAt,
@@ -134,8 +135,8 @@ func (r *TripRepositoryImpl) Update(ctx context.Context, trip *models.Trip) erro
 		SET passenger_id = $2, driver_id = $3, status = $4, pickup_latitude = $5, pickup_longitude = $6,
 			destination_latitude = $7, destination_longitude = $8, pickup_address = $9, destination_address = $10,
 			fare_amount = $11, distance_km = $12, duration_minutes = $13, requested_at = $14, matched_at = $15,
-			pickup_at = $16, completed_at = $17, cancelled_at = $18,
-			updated_at = $19
+			accepted_at = $16, pickup_at = $17, completed_at = $18, cancelled_at = $19,
+			updated_at = $20
 		WHERE id = $1
 	`
 	
@@ -155,6 +156,7 @@ func (r *TripRepositoryImpl) Update(ctx context.Context, trip *models.Trip) erro
 		trip.DurationMinutes,
 		trip.RequestedAt,
 		trip.MatchedAt,
+		trip.AcceptedAt,
 		trip.PickupAt,
 		trip.CompletedAt,
 		trip.CancelledAt,
@@ -226,7 +228,7 @@ func (r *TripRepositoryImpl) GetByPassengerID(ctx context.Context, passengerID s
 	query := `
 		SELECT id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
 			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
-			duration_minutes, requested_at, matched_at, pickup_at, completed_at, cancelled_at, 
+			duration_minutes, requested_at, matched_at, accepted_at, pickup_at, completed_at, cancelled_at, 
 			created_at, updated_at
 		FROM trips
 		WHERE passenger_id = $1
@@ -242,7 +244,7 @@ func (r *TripRepositoryImpl) GetByDriverID(ctx context.Context, driverID string,
 	query := `
 		SELECT id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
 			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
-			duration_minutes, requested_at, matched_at, pickup_at, completed_at, cancelled_at, 
+			duration_minutes, requested_at, matched_at, accepted_at, pickup_at, completed_at, cancelled_at, 
 			created_at, updated_at
 		FROM trips
 		WHERE driver_id = $1
@@ -258,7 +260,7 @@ func (r *TripRepositoryImpl) GetActiveTrips(ctx context.Context) ([]*models.Trip
 	query := `
 		SELECT id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
 			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
-			duration_minutes, requested_at, matched_at, pickup_at, completed_at, cancelled_at, 
+			duration_minutes, requested_at, matched_at, accepted_at, pickup_at, completed_at, cancelled_at, 
 			created_at, updated_at
 		FROM trips
 		WHERE status IN ('requested', 'matched', 'started')
@@ -273,7 +275,7 @@ func (r *TripRepositoryImpl) GetTripsByStatus(ctx context.Context, status models
 	query := `
 		SELECT id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
 			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
-			duration_minutes, requested_at, matched_at, pickup_at, completed_at, cancelled_at, 
+			duration_minutes, requested_at, matched_at, accepted_at, pickup_at, completed_at, cancelled_at, 
 			created_at, updated_at
 		FROM trips
 		WHERE status = $1
@@ -303,7 +305,7 @@ func (r *TripRepositoryImpl) GetTripsByDateRange(ctx context.Context, startDate,
 	query := `
 		SELECT id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
 			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
-			duration_minutes, requested_at, matched_at, pickup_at, completed_at, cancelled_at, 
+			duration_minutes, requested_at, matched_at, accepted_at, pickup_at, completed_at, cancelled_at, 
 			created_at, updated_at
 		FROM trips
 		WHERE created_at >= $1 AND created_at < $2
@@ -319,7 +321,7 @@ func (r *TripRepositoryImpl) List(ctx context.Context, limit, offset int) ([]*mo
 	query := `
 		SELECT id, passenger_id, driver_id, status, pickup_latitude, pickup_longitude, 
 			destination_latitude, destination_longitude, pickup_address, destination_address, fare_amount, distance_km, 
-			duration_minutes, requested_at, matched_at, pickup_at, completed_at, cancelled_at, 
+			duration_minutes, requested_at, matched_at, accepted_at, pickup_at, completed_at, cancelled_at, 
 			created_at, updated_at
 		FROM trips
 		ORDER BY created_at DESC
@@ -372,6 +374,7 @@ func (r *TripRepositoryImpl) scanTripRows(rows *sql.Rows) ([]*models.Trip, error
 			&trip.DurationMinutes,
 			&trip.RequestedAt,
 			&trip.MatchedAt,
+			&trip.AcceptedAt,
 			&trip.PickupAt,
 			&trip.CompletedAt,
 			&trip.CancelledAt,

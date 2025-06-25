@@ -383,8 +383,8 @@ func (h *ObservabilityHandler) GetTraditionalPrometheusMetrics(c *gin.Context) {
 	prometheusMetrics += "# TYPE http_requests_total counter\n"
 	prometheusMetrics += "# HELP http_request_duration_ms HTTP request duration in milliseconds\n"
 	prometheusMetrics += "# TYPE http_request_duration_ms histogram\n"
-	prometheusMetrics += "# HELP db_operations_total Total database operations\n"
-	prometheusMetrics += "# TYPE db_operations_total counter\n"
+	prometheusMetrics += "# HELP database_queries_total Total database operations\n"
+	prometheusMetrics += "# TYPE database_queries_total counter\n"
 	prometheusMetrics += "# HELP db_operation_duration_ms Database operation duration in milliseconds\n"
 	prometheusMetrics += "# TYPE db_operation_duration_ms histogram\n"
 	prometheusMetrics += "# HELP cache_operations_total Total cache operations\n"
@@ -407,18 +407,20 @@ func (h *ObservabilityHandler) GetTraditionalPrometheusMetrics(c *gin.Context) {
 				labels = fmt.Sprintf("{service=\"%s\"}", metric.ServiceName)
 			}
 			
-			prometheusMetrics += fmt.Sprintf("%s%s %f %d\n", 
-				metricName, labels, metric.MetricValue, metric.Timestamp.Unix()*1000)
+			prometheusMetrics += fmt.Sprintf("%s%s %f\n", 
+				metricName, labels, metric.MetricValue)
 		}
 	}
 
-	// Add some sample traditional metrics
-	prometheusMetrics += "http_requests_total{endpoint=\"/api/rides\",method=\"POST\",status=\"200\"} 150\n"
-	prometheusMetrics += "http_requests_total{endpoint=\"/api/rides\",method=\"GET\",status=\"200\"} 89\n"
-	prometheusMetrics += "db_operations_total{operation=\"SELECT\",table=\"rides\",status=\"success\"} 245\n"
-	prometheusMetrics += "db_operations_total{operation=\"INSERT\",table=\"rides\",status=\"success\"} 150\n"
-	prometheusMetrics += "cache_operations_total{operation=\"GET\",result=\"hit\"} 178\n"
-	prometheusMetrics += "cache_operations_total{operation=\"GET\",result=\"miss\"} 67\n"
+	// Add some sample traditional metrics (only if no real metrics exist)
+	if len(metrics) == 0 {
+		prometheusMetrics += "http_requests_total{endpoint=\"/api/rides\",method=\"POST\",status=\"200\"} 150\n"
+		prometheusMetrics += "http_requests_total{endpoint=\"/api/rides\",method=\"GET\",status=\"200\"} 89\n"
+		prometheusMetrics += "database_queries_total{operation=\"SELECT\",table=\"rides\",status=\"success\"} 245\n"
+		prometheusMetrics += "database_queries_total{operation=\"INSERT\",table=\"rides\",status=\"success\"} 150\n"
+		prometheusMetrics += "cache_operations_total{operation=\"GET\",result=\"hit\"} 178\n"
+		prometheusMetrics += "cache_operations_total{operation=\"GET\",result=\"miss\"} 67\n"
+	}
 	prometheusMetrics += "system_cpu_usage 45.2\n"
 	prometheusMetrics += "system_memory_usage 67.8\n"
 	prometheusMetrics += "traditional_system_up 1\n"
@@ -773,29 +775,29 @@ func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
 			if metric.ActorID != nil {
 				actorID = *metric.ActorID
 			}
-			prometheusMetrics += fmt.Sprintf("actor_system_cpu_usage{instance_id=\"%s\"} %f %d\n", 
-				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
+			prometheusMetrics += fmt.Sprintf("actor_system_cpu_usage{instance_id=\"%s\"} %f\n", 
+				actorID, metric.MetricValue)
 		case "memory_usage":
 			actorID := "unknown"
 			if metric.ActorID != nil {
 				actorID = *metric.ActorID
 			}
-			prometheusMetrics += fmt.Sprintf("actor_system_memory_usage{instance_id=\"%s\"} %f %d\n", 
-				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
+			prometheusMetrics += fmt.Sprintf("actor_system_memory_usage{instance_id=\"%s\"} %f\n", 
+				actorID, metric.MetricValue)
 		case "goroutines":
 			actorID := "unknown"
 			if metric.ActorID != nil {
 				actorID = *metric.ActorID
 			}
-			prometheusMetrics += fmt.Sprintf("actor_system_goroutines{instance_id=\"%s\"} %f %d\n", 
-				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
+			prometheusMetrics += fmt.Sprintf("actor_system_goroutines{instance_id=\"%s\"} %f\n", 
+				actorID, metric.MetricValue)
 		case "heap_alloc":
 			actorID := "unknown"
 			if metric.ActorID != nil {
 				actorID = *metric.ActorID
 			}
-			prometheusMetrics += fmt.Sprintf("actor_system_heap_alloc{instance_id=\"%s\"} %f %d\n", 
-				actorID, metric.MetricValue, metric.Timestamp.Unix()*1000)
+			prometheusMetrics += fmt.Sprintf("actor_system_heap_alloc{instance_id=\"%s\"} %f\n", 
+				actorID, metric.MetricValue)
 		}
 	}
 
@@ -810,56 +812,62 @@ func (h *ObservabilityHandler) GetPrometheusMetrics(c *gin.Context) {
 				labels = fmt.Sprintf("{service=\"%s\"}", metric.ServiceName)
 			}
 			
-			prometheusMetrics += fmt.Sprintf("%s%s %f %d\n", 
-				metricName, labels, metric.MetricValue, metric.Timestamp.Unix()*1000)
+			prometheusMetrics += fmt.Sprintf("%s%s %f\n", 
+				metricName, labels, metric.MetricValue)
 		}
 	}
 
-	// Add some default business metrics with sample values
+	// Add some default business metrics with sample values only if no real metrics exist
 	// These would normally come from your actual business logic
-	prometheusMetrics += "ride_requests_total 150\n"
-	prometheusMetrics += "ride_matches_total 135\n"
-	prometheusMetrics += "trip_completions_total 128\n"
-	prometheusMetrics += "trip_starts_total 135\n"
-	prometheusMetrics += "ride_cancellations_total 7\n"
-	prometheusMetrics += "ride_timeouts_total 3\n"
-	prometheusMetrics += "matching_failures_total 5\n"
-	prometheusMetrics += "drivers_online_total 45\n"
-	prometheusMetrics += "drivers_busy_total 23\n"
-	prometheusMetrics += "passengers_active_total 67\n"
-	prometheusMetrics += "trips_active_total 23\n"
-	prometheusMetrics += "actor_instances_total{type=\"passenger\"} 67\n"
-	prometheusMetrics += "actor_instances_total{type=\"driver\"} 45\n"
-	prometheusMetrics += "actor_instances_total{type=\"trip\"} 23\n"
-	prometheusMetrics += "actor_instances_total{type=\"matching\"} 5\n"
-	prometheusMetrics += "actor_messages_total 1250\n"
-	prometheusMetrics += "actor_messages_processed_total 1235\n"
-	prometheusMetrics += "actor_messages_failed_total 15\n"
+	if len(metrics) == 0 {
+		prometheusMetrics += "ride_requests_total 150\n"
+		prometheusMetrics += "ride_matches_total 135\n"
+		prometheusMetrics += "trip_completions_total 128\n"
+		prometheusMetrics += "trip_starts_total 135\n"
+		prometheusMetrics += "ride_cancellations_total 7\n"
+		prometheusMetrics += "ride_timeouts_total 3\n"
+		prometheusMetrics += "matching_failures_total 5\n"
+		prometheusMetrics += "drivers_online_total 45\n"
+		prometheusMetrics += "drivers_busy_total 23\n"
+		prometheusMetrics += "passengers_active_total 67\n"
+		prometheusMetrics += "trips_active_total 23\n"
+		prometheusMetrics += "actor_instances_total{type=\"passenger\"} 67\n"
+		prometheusMetrics += "actor_instances_total{type=\"driver\"} 45\n"
+		prometheusMetrics += "actor_instances_total{type=\"trip\"} 23\n"
+		prometheusMetrics += "actor_instances_total{type=\"matching\"} 5\n"
+		prometheusMetrics += "actor_messages_total 1250\n"
+		prometheusMetrics += "actor_messages_processed_total 1235\n"
+		prometheusMetrics += "actor_messages_failed_total 15\n"
+	}
 
-	// Add histogram buckets for latency metrics
-	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"100\"} 45\n"
-	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"250\"} 89\n"
-	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"500\"} 120\n"
-	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"1000\"} 135\n"
-	prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"+Inf\"} 135\n"
-	prometheusMetrics += "ride_matching_duration_ms_sum 28750\n"
-	prometheusMetrics += "ride_matching_duration_ms_count 135\n"
+	// Add histogram buckets for latency metrics only if no real metrics exist
+	if len(metrics) == 0 {
+		prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"100\"} 45\n"
+		prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"250\"} 89\n"
+		prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"500\"} 120\n"
+		prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"1000\"} 135\n"
+		prometheusMetrics += "ride_matching_duration_ms_bucket{le=\"+Inf\"} 135\n"
+		prometheusMetrics += "ride_matching_duration_ms_sum 28750\n"
+		prometheusMetrics += "ride_matching_duration_ms_count 135\n"
+	}
 
-	prometheusMetrics += "trip_duration_ms_bucket{le=\"300000\"} 25\n"
-	prometheusMetrics += "trip_duration_ms_bucket{le=\"600000\"} 67\n"
-	prometheusMetrics += "trip_duration_ms_bucket{le=\"1200000\"} 105\n"
-	prometheusMetrics += "trip_duration_ms_bucket{le=\"1800000\"} 125\n"
-	prometheusMetrics += "trip_duration_ms_bucket{le=\"+Inf\"} 128\n"
-	prometheusMetrics += "trip_duration_ms_sum 76800000\n"
-	prometheusMetrics += "trip_duration_ms_count 128\n"
+	if len(metrics) == 0 {
+		prometheusMetrics += "trip_duration_ms_bucket{le=\"300000\"} 25\n"
+		prometheusMetrics += "trip_duration_ms_bucket{le=\"600000\"} 67\n"
+		prometheusMetrics += "trip_duration_ms_bucket{le=\"1200000\"} 105\n"
+		prometheusMetrics += "trip_duration_ms_bucket{le=\"1800000\"} 125\n"
+		prometheusMetrics += "trip_duration_ms_bucket{le=\"+Inf\"} 128\n"
+		prometheusMetrics += "trip_duration_ms_sum 76800000\n"
+		prometheusMetrics += "trip_duration_ms_count 128\n"
 
-	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"1\"} 890\n"
-	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"5\"} 1150\n"
-	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"10\"} 1200\n"
-	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"25\"} 1230\n"
-	prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"+Inf\"} 1235\n"
-	prometheusMetrics += "actor_message_processing_duration_ms_sum 4250\n"
-	prometheusMetrics += "actor_message_processing_duration_ms_count 1235\n"
+		prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"1\"} 890\n"
+		prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"5\"} 1150\n"
+		prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"10\"} 1200\n"
+		prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"25\"} 1230\n"
+		prometheusMetrics += "actor_message_processing_duration_ms_bucket{le=\"+Inf\"} 1235\n"
+		prometheusMetrics += "actor_message_processing_duration_ms_sum 4250\n"
+		prometheusMetrics += "actor_message_processing_duration_ms_count 1235\n"
+	}
 
 	// Add some basic application metrics
 	prometheusMetrics += "# HELP actor_system_up Application up status\n"

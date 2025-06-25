@@ -149,7 +149,7 @@ func (tm *TraditionalMonitor) RecordDatabaseOperation(operation, table string, d
 		status = "error"
 	}
 
-	tm.recordMetric("db_operations_total", "counter", 1, "operations", map[string]string{
+	tm.recordMetric("database_queries_total", "counter", 1, "operations", map[string]string{
 		"operation": operation,
 		"table":     table,
 		"status":    status,
