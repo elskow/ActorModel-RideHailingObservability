@@ -489,27 +489,16 @@ func (tm *TraditionalMonitor) flushTraditionalMetrics() {
 	tm.metrics = make(map[string]*TraditionalMetric)
 }
 
-// insertMetricsBatch inserts metrics in batches using standard SQL
+// insertMetricsBatch inserts metrics in batches using sqlx
 func (tm *TraditionalMonitor) insertMetricsBatch(metrics []*models.TraditionalMetric) error {
 	if len(metrics) == 0 {
 		return nil
 	}
 	
-	query := `INSERT INTO traditional_metrics (metric_name, metric_type, metric_value, labels, service_name, instance_id, timestamp) VALUES `
-	values := make([]interface{}, 0, len(metrics)*7)
-	placeholders := make([]string, 0, len(metrics))
+	query := `INSERT INTO traditional_metrics (metric_name, metric_type, metric_value, labels, service_name, instance_id, timestamp) 
+			  VALUES (:metric_name, :metric_type, :metric_value, :labels, :service_name, :instance_id, :timestamp)`
 	
-	for i, metric := range metrics {
-		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d, $%d)", i*7+1, i*7+2, i*7+3, i*7+4, i*7+5, i*7+6, i*7+7))
-		values = append(values, metric.MetricName, metric.MetricType, metric.MetricValue, metric.Labels, metric.ServiceName, metric.InstanceID, metric.Timestamp)
-	}
-	
-	query += placeholders[0]
-	for i := 1; i < len(placeholders); i++ {
-		query += ", " + placeholders[i]
-	}
-	
-	_, err := tm.db.Exec(query, values...)
+	_, err := tm.db.NamedExec(query, metrics)
 	return err
 }
 
@@ -532,27 +521,16 @@ func (tm *TraditionalMonitor) flushLogs() {
 
 }
 
-// insertLogsBatch inserts logs in batches using standard SQL
+// insertLogsBatch inserts logs in batches using sqlx
 func (tm *TraditionalMonitor) insertLogsBatch(logs []*models.TraditionalLog) error {
 	if len(logs) == 0 {
 		return nil
 	}
 	
-	query := `INSERT INTO traditional_logs (level, message, service_name, instance_id, fields, timestamp) VALUES `
-	values := make([]interface{}, 0, len(logs)*6)
-	placeholders := make([]string, 0, len(logs))
+	query := `INSERT INTO traditional_logs (level, message, service_name, instance_id, fields, timestamp) 
+			  VALUES (:level, :message, :service_name, :instance_id, :fields, :timestamp)`
 	
-	for i, log := range logs {
-		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, $%d)", i*6+1, i*6+2, i*6+3, i*6+4, i*6+5, i*6+6))
-		values = append(values, log.Level, log.Message, log.ServiceName, log.InstanceID, log.Fields, log.Timestamp)
-	}
-	
-	query += placeholders[0]
-	for i := 1; i < len(placeholders); i++ {
-		query += ", " + placeholders[i]
-	}
-	
-	_, err := tm.db.Exec(query, values...)
+	_, err := tm.db.NamedExec(query, logs)
 	return err
 }
 

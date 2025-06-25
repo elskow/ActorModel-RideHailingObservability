@@ -8,16 +8,17 @@ import (
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
 // UserRepositoryImpl implements the UserRepository interface using PostgreSQL
 type UserRepositoryImpl struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 // NewUserRepository creates a new instance of UserRepositoryImpl
-func NewUserRepository(db *sql.DB) repository.UserRepository {
+func NewUserRepository(db *sqlx.DB) repository.UserRepository {
 	return &UserRepositoryImpl{db: db}
 }
 
@@ -25,18 +26,10 @@ func NewUserRepository(db *sql.DB) repository.UserRepository {
 func (r *UserRepositoryImpl) Create(ctx context.Context, user *models.User) error {
 	query := `
 		INSERT INTO users (id, email, phone, name, user_type, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES (:id, :email, :phone, :name, :user_type, :created_at, :updated_at)
 	`
 	
-	_, err := r.db.ExecContext(ctx, query,
-		user.ID,
-		user.Email,
-		user.Phone,
-		user.Name,
-		user.UserType,
-		user.CreatedAt,
-		user.UpdatedAt,
-	)
+	_, err := r.db.NamedExecContext(ctx, query, user)
 	
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -71,15 +64,7 @@ func (r *UserRepositoryImpl) GetByID(ctx context.Context, id string) (*models.Us
 	`
 	
 	user := &models.User{}
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&user.ID,
-		&user.Email,
-		&user.Phone,
-		&user.Name,
-		&user.UserType,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
+	err := r.db.GetContext(ctx, user, query, id)
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -103,15 +88,7 @@ func (r *UserRepositoryImpl) GetByEmail(ctx context.Context, email string) (*mod
 	`
 	
 	user := &models.User{}
-	err := r.db.QueryRowContext(ctx, query, email).Scan(
-		&user.ID,
-		&user.Email,
-		&user.Phone,
-		&user.Name,
-		&user.UserType,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
+	err := r.db.GetContext(ctx, user, query, email)
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -135,15 +112,7 @@ func (r *UserRepositoryImpl) GetByPhone(ctx context.Context, phone string) (*mod
 	`
 	
 	user := &models.User{}
-	err := r.db.QueryRowContext(ctx, query, phone).Scan(
-		&user.ID,
-		&user.Email,
-		&user.Phone,
-		&user.Name,
-		&user.UserType,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
+	err := r.db.GetContext(ctx, user, query, phone)
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -162,18 +131,11 @@ func (r *UserRepositoryImpl) GetByPhone(ctx context.Context, phone string) (*mod
 func (r *UserRepositoryImpl) Update(ctx context.Context, user *models.User) error {
 	query := `
 		UPDATE users
-		SET email = $2, phone = $3, name = $4, user_type = $5, updated_at = $6
-		WHERE id = $1
+		SET email = :email, phone = :phone, name = :name, user_type = :user_type, updated_at = :updated_at
+		WHERE id = :id
 	`
 	
-	result, err := r.db.ExecContext(ctx, query,
-		user.ID,
-		user.Email,
-		user.Phone,
-		user.Name,
-		user.UserType,
-		user.UpdatedAt,
-	)
+	result, err := r.db.NamedExecContext(ctx, query, user)
 	
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {

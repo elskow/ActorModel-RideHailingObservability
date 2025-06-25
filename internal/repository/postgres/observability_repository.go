@@ -8,15 +8,17 @@ import (
 
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // ObservabilityRepositoryImpl implements the ObservabilityRepository interface using PostgreSQL
 type ObservabilityRepositoryImpl struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 // NewObservabilityRepository creates a new instance of ObservabilityRepositoryImpl
-func NewObservabilityRepository(db *sql.DB) repository.ObservabilityRepository {
+func NewObservabilityRepository(db *sqlx.DB) repository.ObservabilityRepository {
 	return &ObservabilityRepositoryImpl{db: db}
 }
 

@@ -8,16 +8,17 @@ import (
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
 // PassengerRepositoryImpl implements the PassengerRepository interface using PostgreSQL
 type PassengerRepositoryImpl struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 // NewPassengerRepository creates a new instance of PassengerRepositoryImpl
-func NewPassengerRepository(db *sql.DB) repository.PassengerRepository {
+func NewPassengerRepository(db *sqlx.DB) repository.PassengerRepository {
 	return &PassengerRepositoryImpl{db: db}
 }
 
@@ -25,7 +26,7 @@ func NewPassengerRepository(db *sql.DB) repository.PassengerRepository {
 func (r *PassengerRepositoryImpl) Create(ctx context.Context, passenger *models.Passenger) error {
 	query := `
 		INSERT INTO passengers (id, user_id, rating, total_trips, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES (:id, :user_id, :rating, :total_trips, :created_at, :updated_at)
 	`
 	
 	_, err := r.db.ExecContext(ctx, query,

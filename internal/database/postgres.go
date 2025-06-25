@@ -9,13 +9,14 @@ import (
 	"actor-model-observability/internal/config"
 	"actor-model-observability/internal/logging"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
-// PostgresDB wraps sql.DB with additional functionality
+// PostgresDB wraps sqlx.DB with additional functionality
 type PostgresDB struct {
-	*sql.DB
+	*sqlx.DB
 	config *config.DatabaseConfig
 	logger *logging.Logger
 }
@@ -32,7 +33,7 @@ func NewPostgresConnection(cfg *config.DatabaseConfig, logger *logging.Logger) (
 		cfg.SSLMode,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := sqlx.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}

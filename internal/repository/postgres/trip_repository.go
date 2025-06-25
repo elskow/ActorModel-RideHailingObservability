@@ -9,16 +9,17 @@ import (
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
 // TripRepositoryImpl implements the TripRepository interface using PostgreSQL
 type TripRepositoryImpl struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 // NewTripRepository creates a new instance of TripRepositoryImpl
-func NewTripRepository(db *sql.DB) repository.TripRepository {
+func NewTripRepository(db *sqlx.DB) repository.TripRepository {
 	return &TripRepositoryImpl{db: db}
 }
 

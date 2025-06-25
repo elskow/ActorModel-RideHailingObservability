@@ -9,16 +9,17 @@ import (
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
 
 // DriverRepositoryImpl implements the DriverRepository interface using PostgreSQL
 type DriverRepositoryImpl struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 // NewDriverRepository creates a new instance of DriverRepositoryImpl
-func NewDriverRepository(db *sql.DB) repository.DriverRepository {
+func NewDriverRepository(db *sqlx.DB) repository.DriverRepository {
 	return &DriverRepositoryImpl{db: db}
 }
 
@@ -27,23 +28,11 @@ func (r *DriverRepositoryImpl) Create(ctx context.Context, driver *models.Driver
 	query := `
 		INSERT INTO drivers (id, user_id, license_number, vehicle_type, vehicle_plate, 
 			status, current_latitude, current_longitude, rating, total_trips, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES (:id, :user_id, :license_number, :vehicle_type, :vehicle_plate, 
+			:status, :current_latitude, :current_longitude, :rating, :total_trips, :created_at, :updated_at)
 	`
 	
-	_, err := r.db.ExecContext(ctx, query,
-		driver.ID,
-		driver.UserID,
-		driver.LicenseNumber,
-		driver.VehicleType,
-		driver.VehiclePlate,
-		driver.Status,
-		driver.CurrentLatitude,
-		driver.CurrentLongitude,
-		driver.Rating,
-		driver.TotalTrips,
-		driver.CreatedAt,
-		driver.UpdatedAt,
-	)
+	_, err := r.db.NamedExecContext(ctx, query, driver)
 	
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {

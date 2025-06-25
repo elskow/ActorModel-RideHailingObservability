@@ -8,15 +8,17 @@ import (
 
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // TraditionalRepositoryImpl implements the TraditionalRepository interface using PostgreSQL
 type TraditionalRepositoryImpl struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 // NewTraditionalRepository creates a new instance of TraditionalRepositoryImpl
-func NewTraditionalRepository(db *sql.DB) repository.TraditionalRepository {
+func NewTraditionalRepository(db *sqlx.DB) repository.TraditionalRepository {
 	return &TraditionalRepositoryImpl{db: db}
 }
 
