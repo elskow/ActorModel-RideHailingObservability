@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"actor-model-observability/internal/actor"
-	internalconfig "actor-model-observability/internal/config"
+	"actor-model-observability/internal/config"
+	"actor-model-observability/internal/logging"
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/observability"
 	"actor-model-observability/internal/service"
@@ -37,46 +38,58 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 	b.Helper()
 
 	// Create configuration for observability (pkg/config)
-	pkgCfg := &internalconfig.Config{
-		Server: internalconfig.ServerConfig{
+	pkgCfg := &config.Config{
+		Server: config.ServerConfig{
 			Port: "8080",
 			Mode: "test",
 		},
-		Actor: internalconfig.ActorConfig{
-			MaxActors: 1000,
+		Actor: config.ActorConfig{
+			MaxActors:           1000,
 			SupervisionStrategy: "restart",
 		},
-	}
-
-	// Create configuration for traditional monitor (internal/config)
-	internalCfg := &internalconfig.Config{
-		Server: internalconfig.ServerConfig{
-			Port: "8080",
-			Mode: "test",
+		OpenTelemetry: config.OpenTelemetryConfig{
+			ServiceName:     "benchmark-test",
+			TracingEnabled:  false,
+			MetricsEnabled:  false,
+			OTLPEndpoint:    "http://localhost:4317",
 		},
-		Actor: internalconfig.ActorConfig{
-			MaxActors: 1000,
-			SupervisionStrategy: "restart",
-		},
-		Metrics: internalconfig.MetricsConfig{
+		Metrics: config.MetricsConfig{
 			CollectInterval: 1 * time.Second,
 			FlushInterval:   5 * time.Second,
 			RetentionPeriod: 1 * time.Hour,
 			BatchSize:       10,
 		},
+		Logging: config.LoggingConfig{
+			Level:  "info",
+			Format: "json",
+			Output: "stdout",
+		},
 	}
 
 	// Initialize actor system
 	actorSystem := actor.NewActorSystem("benchmark-system")
+	// Start the actor system with a background context
+	if err := actorSystem.Start(context.Background()); err != nil {
+		b.Fatalf("Failed to start actor system: %v", err)
+	}
+
+	// Initialize logger for benchmark
+	logger, err := logging.NewLogger(&pkgCfg.Logging)
+	if err != nil {
+		b.Fatalf("Failed to create logger: %v", err)
+	}
 
 	// Initialize observability (with nil dependencies for benchmark)
-	metricsCollector := observability.NewMetricsCollector(nil, nil, pkgCfg)
+	metricsCollector := observability.NewMetricsCollector(nil, nil, pkgCfg, logger)
+
+	// Initialize OTel monitor for traditional monitor
+	otelMonitor, err := observability.NewOTelMonitor(&pkgCfg.OpenTelemetry, logger)
+	if err != nil {
+		b.Fatalf("Failed to create OTel monitor: %v", err)
+	}
 
 	// Initialize traditional monitor
-	traditionalMonitor, err := traditional.NewTraditionalMonitor(internalCfg)
-	if err != nil {
-		b.Fatalf("Failed to create traditional monitor: %v", err)
-	}
+	traditionalMonitor := traditional.NewTraditionalMonitor(logger, otelMonitor)
 
 	// Create mock repositories
 	userRepo := &MockUserRepository{}
@@ -87,7 +100,7 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 	// Initialize ride service
 	rideService := service.NewRideService(
 		userRepo, driverRepo, passengerRepo, tripRepo,
-		actorSystem, metricsCollector, traditionalMonitor, true,
+		actorSystem, metricsCollector, traditionalMonitor, logger, true,
 	)
 
 	// Setup routers

@@ -14,8 +14,12 @@ import (
 	"actor-model-observability/internal/service"
 	"actor-model-observability/internal/traditional"
 
+	_ "actor-model-observability/docs" // Import generated docs
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 // RouterConfig holds dependencies for router setup
@@ -298,6 +302,13 @@ func setupAdminRoutes(router *gin.Engine, cfg *RouterConfig) {
 		{
 			actorAdmin.POST("/start", func(c *gin.Context) {
 				if cfg.ActorSystem != nil {
+					if cfg.ActorSystem.IsStarted() {
+						c.JSON(http.StatusOK, gin.H{
+							"status": "already_started",
+							"message": "Actor system is already running",
+						})
+						return
+					}
 					if err := cfg.ActorSystem.Start(c.Request.Context()); err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{
 							"error": "Failed to start actor system",
@@ -354,15 +365,9 @@ func setupAdminRoutes(router *gin.Engine, cfg *RouterConfig) {
 }
 
 // setupSwaggerRoutes configures Swagger documentation routes
-func setupSwaggerRoutes(router *gin.Engine) {
-	// This would typically use swaggo/gin-swagger
-	// For now, just a placeholder
-	router.GET("/swagger/*any", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Swagger documentation would be available here",
-			"note":    "Install swaggo/gin-swagger for full documentation",
-		})
-	})
+func setupSwaggerRoutes(r *gin.Engine) {
+	// Swagger endpoint
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
 
 // getSystemInfo returns system information

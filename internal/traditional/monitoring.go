@@ -5,17 +5,15 @@ import (
 	"net/http"
 	"time"
 
-	"actor-model-observability/internal/config"
+	"actor-model-observability/internal/logging"
 	"actor-model-observability/internal/observability"
-
-	"github.com/sirupsen/logrus"
 )
 
 // TraditionalMonitor implements OpenTelemetry-based monitoring
 // This replaces the previous custom monitoring implementation
 type TraditionalMonitor struct {
 	otelMonitor *observability.OTelMonitor
-	logger      *logrus.Entry
+	logger      *logging.Logger
 	ctx         context.Context
 	cancel      context.CancelFunc
 }
@@ -24,7 +22,7 @@ type TraditionalMonitor struct {
 type ServiceHealth struct {
 	ServiceName   string            `json:"service_name"`
 	Status        string            `json:"status"`
-	Uptime        time.Duration     `json:"uptime"`
+	Uptime        time.Duration     `json:"uptime" swaggertype:"integer"`
 	LastCheck     time.Time         `json:"last_check"`
 	HealthChecks  map[string]string `json:"health_checks"`
 	Dependencies  []string          `json:"dependencies"`
@@ -32,16 +30,11 @@ type ServiceHealth struct {
 }
 
 // NewTraditionalMonitor creates a new OpenTelemetry-based monitoring system
-func NewTraditionalMonitor(cfg *config.Config) (*TraditionalMonitor, error) {
-	otelMonitor, err := observability.NewOTelMonitor(&cfg.OpenTelemetry)
-	if err != nil {
-		return nil, err
-	}
-
+func NewTraditionalMonitor(logger *logging.Logger, otelMonitor *observability.OTelMonitor) *TraditionalMonitor {
 	return &TraditionalMonitor{
 		otelMonitor: otelMonitor,
-		logger:      logrus.WithField("component", "traditional_monitor"),
-	}, nil
+		logger:      logger.WithComponent("traditional_monitor"),
+	}
 }
 
 // Start begins the OpenTelemetry monitoring process
@@ -59,7 +52,12 @@ func (tm *TraditionalMonitor) Stop() error {
 	}
 
 	if tm.otelMonitor != nil {
-		if err := tm.otelMonitor.Shutdown(tm.ctx); err != nil {
+		// Create a fresh context with timeout for shutdown
+		// Don't use tm.ctx as it might already be canceled
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		
+		if err := tm.otelMonitor.Shutdown(shutdownCtx); err != nil {
 			tm.logger.WithError(err).Error("Failed to shutdown OpenTelemetry monitor")
 			return err
 		}

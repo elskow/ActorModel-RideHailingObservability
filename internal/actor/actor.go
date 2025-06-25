@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"actor-model-observability/internal/logging"
+
+	"github.com/google/uuid"
 )
 
 // ActorState represents the current state of an actor

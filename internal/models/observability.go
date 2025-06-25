@@ -65,7 +65,7 @@ type ActorMessage struct {
 	ReceiverActorType    ActorType      `json:"receiver_actor_type" gorm:"not null"`
 	ReceiverActorID      string         `json:"receiver_actor_id" gorm:"not null"`
 	MessageType          string         `json:"message_type" gorm:"not null"`
-	MessagePayload       json.RawMessage `json:"message_payload" gorm:"type:jsonb"`
+	MessagePayload       json.RawMessage `json:"message_payload" gorm:"type:jsonb" swaggertype:"object"`
 	Status               MessageStatus  `json:"status" gorm:"default:'sent';check:status IN ('sent', 'received', 'processed', 'failed')"`
 	SentAt               time.Time      `json:"sent_at" gorm:"default:CURRENT_TIMESTAMP"`
 	ReceivedAt           *time.Time     `json:"received_at"`
@@ -95,7 +95,7 @@ type SystemMetric struct {
 	MetricName  string          `json:"metric_name" gorm:"not null;index"`
 	MetricType  MetricType      `json:"metric_type" gorm:"not null;check:metric_type IN ('counter', 'gauge', 'histogram')"`
 	MetricValue float64         `json:"metric_value" gorm:"type:decimal(15,6);not null"`
-	Labels      json.RawMessage `json:"labels" gorm:"type:jsonb"`
+	Labels      json.RawMessage `json:"labels" gorm:"type:jsonb" swaggertype:"object"`
 	ActorType   *ActorType      `json:"actor_type"`
 	ActorID     *string         `json:"actor_id"`
 	Timestamp   time.Time       `json:"timestamp" gorm:"default:CURRENT_TIMESTAMP;index"`
@@ -129,8 +129,8 @@ type DistributedTrace struct {
 	EndTime       *time.Time      `json:"end_time"`
 	DurationMs    *int            `json:"duration_ms"`
 	Status        TraceStatus     `json:"status" gorm:"default:'ok';check:status IN ('ok', 'error', 'timeout')"`
-	Tags          json.RawMessage `json:"tags" gorm:"type:jsonb"`
-	Logs          json.RawMessage `json:"logs" gorm:"type:jsonb"`
+	Tags          json.RawMessage `json:"tags" gorm:"type:jsonb" swaggertype:"object"`
+	Logs          json.RawMessage `json:"logs" gorm:"type:jsonb" swaggertype:"object"`
 	CreatedAt     time.Time       `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
 }
 
@@ -171,7 +171,7 @@ type EventLog struct {
 	ActorID       *string         `json:"actor_id"`
 	EntityType    *string         `json:"entity_type"`
 	EntityID      *uuid.UUID      `json:"entity_id" gorm:"type:uuid"`
-	EventData     json.RawMessage `json:"event_data" gorm:"type:jsonb"`
+	EventData     json.RawMessage `json:"event_data" gorm:"type:jsonb" swaggertype:"object"`
 	Severity      EventSeverity   `json:"severity" gorm:"default:'info';check:severity IN ('debug', 'info', 'warn', 'error', 'fatal')"`
 	Message       string          `json:"message"`
 	Timestamp     time.Time       `json:"timestamp" gorm:"default:CURRENT_TIMESTAMP;index"`
@@ -275,7 +275,7 @@ type TraditionalMetric struct {
 	MetricName  string          `json:"metric_name" gorm:"not null;index"`
 	MetricType  MetricType      `json:"metric_type" gorm:"not null;check:metric_type IN ('counter', 'gauge', 'histogram')"`
 	MetricValue float64         `json:"metric_value" gorm:"type:decimal(15,6);not null"`
-	Labels      json.RawMessage `json:"labels" gorm:"type:jsonb"`
+	Labels      json.RawMessage `json:"labels" gorm:"type:jsonb" swaggertype:"object"`
 	ServiceName string          `json:"service_name" gorm:"not null"`
 	InstanceID  string          `json:"instance_id"`
 	Timestamp   time.Time       `json:"timestamp" gorm:"default:CURRENT_TIMESTAMP;index"`
@@ -305,7 +305,7 @@ type TraditionalLog struct {
 	Message     string          `json:"message" gorm:"not null"`
 	ServiceName string          `json:"service_name" gorm:"not null"`
 	InstanceID  string          `json:"instance_id"`
-	Fields      json.RawMessage `json:"fields" gorm:"type:jsonb"`
+	Fields      json.RawMessage `json:"fields" gorm:"type:jsonb" swaggertype:"object"`
 	Timestamp   time.Time       `json:"timestamp" gorm:"default:CURRENT_TIMESTAMP;index"`
 	CreatedAt   time.Time       `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
 }

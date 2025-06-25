@@ -1,3 +1,35 @@
+// Package main Actor Model Ride Hailing Observability API
+//
+// This is a ride hailing application built with the Actor Model pattern,
+// featuring comprehensive observability with OpenTelemetry, Prometheus, and Jaeger.
+//
+// Terms Of Service:
+//
+// there are no TOS at this moment, use at your own risk we take no responsibility
+//
+//	Schemes: http, https
+//	Host: localhost:8080
+//	BasePath: /api/v1
+//	Version: 1.0.0
+//	License: MIT https://opensource.org/licenses/MIT
+//	Contact: Developer <dev@example.com> https://github.com/your-repo
+//
+//	Consumes:
+//	- application/json
+//
+//	Produces:
+//	- application/json
+//
+//	Security:
+//	- api_key:
+//
+//	SecurityDefinitions:
+//	api_key:
+//	     type: apiKey
+//	     name: KEY
+//	     in: header
+//
+// swagger:meta
 package main
 
 import (
@@ -7,6 +39,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -50,11 +83,6 @@ func main() {
 			"name": cfg.Database.DBName,
 		}).WithError(err).Fatal("Failed to connect to database")
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			logger.WithError(err).Error("Failed to close database connection")
-		}
-	}()
 
 	// Test database connection
 	if err := db.HealthCheck(context.Background()); err != nil {
@@ -71,11 +99,6 @@ func main() {
 			"db":   cfg.Redis.DB,
 		}).WithError(err).Fatal("Failed to connect to Redis")
 	}
-	defer func() {
-		if err := redisClient.Close(); err != nil {
-			logger.WithError(err).Error("Failed to close Redis connection")
-		}
-	}()
 
 	// Test Redis connection
 	if err := redisClient.HealthCheck(context.Background()); err != nil {
@@ -94,18 +117,17 @@ func main() {
 	// Initialize actor system
 	actorSystem := actor.NewActorSystem("main-system")
 
-	// Initialize observability collector
-	metricsCollector := observability.NewMetricsCollector(
-		db,
-		redisClient.Client,
-		cfg,
-	)
-
-	// Initialize traditional monitor
-	traditionalMonitor, err := traditional.NewTraditionalMonitor(cfg)
+	// Initialize OpenTelemetry monitor
+	otelMonitor, err := observability.NewOTelMonitor(&cfg.OpenTelemetry, logger)
 	if err != nil {
-		log.Fatalf("Failed to initialize traditional monitor: %v", err)
+		logger.WithError(err).Fatal("Failed to initialize OpenTelemetry monitor")
 	}
+
+	// Initialize observability collector
+	metricsCollector := observability.NewMetricsCollector(db, redisClient.Client, cfg, logger)
+
+	// Initialize traditional monitoring
+	traditionalMonitor := traditional.NewTraditionalMonitor(logger, otelMonitor)
 
 	// Initialize services
 	rideService := service.NewRideService(
@@ -116,6 +138,7 @@ func main() {
 		actorSystem,
 		metricsCollector,
 		traditionalMonitor,
+		logger,
 		true, // useActorModel
 	)
 
@@ -180,8 +203,8 @@ func main() {
 
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.WithFields(logging.Fields{
-			"port": cfg.Server.Port,
-		}).WithError(err).Fatal("Failed to start HTTP server")
+				"port": cfg.Server.Port,
+			}).WithError(err).Fatal("Failed to start HTTP server")
 		}
 	}()
 
@@ -192,40 +215,164 @@ func main() {
 
 	logger.Info("Shutting down server...")
 
-	// Create a context with timeout for graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	// Shutdown HTTP server
-	if err := server.Shutdown(ctx); err != nil {
-		logger.WithError(err).Error("Server forced to shutdown")
-	} else {
-		logger.Info("HTTP server shutdown completed")
-	}
-
-	// Stop background services
-	logger.Info("Stopping background services")
-
-	// Stop traditional monitor
-	if err := traditionalMonitor.Stop(); err != nil {
-		logger.WithError(err).Error("Failed to stop traditional monitor")
-	} else {
-		logger.Info("Traditional monitor stopped")
-	}
-
-	// Stop metrics collector
-	if err := metricsCollector.Stop(); err != nil {
-		logger.WithError(err).Error("Failed to stop metrics collector")
-	} else {
-		logger.Info("Metrics collector stopped")
-	}
-
-	// Stop actor system
-	if err := actorSystem.Stop(); err != nil {
-		logger.WithError(err).Error("Failed to stop actor system")
-	} else {
-		logger.Info("Actor system stopped")
-	}
+	// Perform graceful shutdown with proper error handling
+	performGracefulShutdown(server, actorSystem, metricsCollector, traditionalMonitor, db, redisClient, logger)
 
 	logger.Info("Application shutdown completed")
+}
+
+// performGracefulShutdown handles the graceful shutdown of all services
+func performGracefulShutdown(
+	server *http.Server,
+	actorSystem *actor.ActorSystem,
+	metricsCollector *observability.MetricsCollector,
+	traditionalMonitor *traditional.TraditionalMonitor,
+	db *database.PostgresDB,
+	redisClient *database.RedisClient,
+	logger *logging.Logger,
+) {
+	// Create a context with timeout for the entire shutdown process
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer shutdownCancel()
+
+	// Channel to collect shutdown errors
+	errorChan := make(chan error, 6)
+	var shutdownWg sync.WaitGroup
+
+	// Shutdown HTTP server first
+	shutdownWg.Add(1)
+	go func() {
+		defer shutdownWg.Done()
+		logger.Info("Shutting down HTTP server...")
+		
+		// Create a shorter timeout for HTTP server shutdown
+		serverCtx, serverCancel := context.WithTimeout(shutdownCtx, 10*time.Second)
+		defer serverCancel()
+		
+		if err := server.Shutdown(serverCtx); err != nil {
+			errorChan <- fmt.Errorf("HTTP server shutdown error: %w", err)
+			logger.WithError(err).Error("Server forced to shutdown")
+		} else {
+			logger.Info("HTTP server shutdown completed")
+		}
+	}()
+
+	// Stop background services concurrently
+	logger.Info("Stopping background services...")
+
+	// Stop traditional monitor
+	shutdownWg.Add(1)
+	go func() {
+		defer shutdownWg.Done()
+		logger.Info("Stopping traditional monitor...")
+		
+		// Create a timeout context for traditional monitor
+		monitorCtx, monitorCancel := context.WithTimeout(shutdownCtx, 8*time.Second)
+		defer monitorCancel()
+		
+		// Create a channel to handle the stop operation with timeout
+		done := make(chan error, 1)
+		go func() {
+			done <- traditionalMonitor.Stop()
+		}()
+		
+		select {
+		case err := <-done:
+			if err != nil {
+				errorChan <- fmt.Errorf("traditional monitor stop error: %w", err)
+				logger.WithError(err).Error("Failed to stop traditional monitor")
+			} else {
+				logger.Info("Traditional monitor stopped")
+			}
+		case <-monitorCtx.Done():
+			errorChan <- fmt.Errorf("traditional monitor stop timeout")
+			logger.Error("Traditional monitor stop timed out")
+		}
+	}()
+
+	// Stop metrics collector
+	shutdownWg.Add(1)
+	go func() {
+		defer shutdownWg.Done()
+		logger.Info("Stopping metrics collector...")
+		
+		if err := metricsCollector.Stop(); err != nil {
+			errorChan <- fmt.Errorf("metrics collector stop error: %w", err)
+			logger.WithError(err).Error("Failed to stop metrics collector")
+		} else {
+			logger.Info("Metrics collector stopped")
+		}
+	}()
+
+	// Stop actor system
+	shutdownWg.Add(1)
+	go func() {
+		defer shutdownWg.Done()
+		logger.Info("Stopping actor system...")
+		
+		if err := actorSystem.Stop(); err != nil {
+			errorChan <- fmt.Errorf("actor system stop error: %w", err)
+			logger.WithError(err).Error("Failed to stop actor system")
+		} else {
+			logger.Info("Actor system stopped")
+		}
+	}()
+
+	// Close database connection
+	shutdownWg.Add(1)
+	go func() {
+		defer shutdownWg.Done()
+		logger.Info("Closing database connection...")
+		
+		if err := db.Close(); err != nil {
+			errorChan <- fmt.Errorf("database close error: %w", err)
+			logger.WithError(err).Error("Failed to close database connection")
+		} else {
+			logger.Info("Database connection closed")
+		}
+	}()
+
+	// Close Redis connection
+	shutdownWg.Add(1)
+	go func() {
+		defer shutdownWg.Done()
+		logger.Info("Closing Redis connection...")
+		
+		if err := redisClient.Close(); err != nil {
+			errorChan <- fmt.Errorf("Redis close error: %w", err)
+			logger.WithError(err).Error("Failed to close Redis connection")
+		} else {
+			logger.Info("Redis connection closed")
+		}
+	}()
+
+	// Wait for all shutdown operations to complete or timeout
+	done := make(chan struct{})
+	go func() {
+		shutdownWg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		logger.Info("All services stopped successfully")
+	case <-shutdownCtx.Done():
+		logger.Error("Shutdown timeout reached, forcing exit")
+	}
+
+	// Close error channel and log any collected errors
+	close(errorChan)
+	errorCount := 0
+	for err := range errorChan {
+		logger.WithError(err).Error("Shutdown error occurred")
+		errorCount++
+	}
+
+	if errorCount > 0 {
+		logger.WithFields(logging.Fields{
+			"error_count": errorCount,
+		}).Warn("Shutdown completed with errors")
+	} else {
+		logger.Info("Shutdown completed successfully")
+	}
 }

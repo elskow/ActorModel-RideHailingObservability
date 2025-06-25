@@ -94,10 +94,10 @@ type DriverLocationPayload struct {
 }
 
 type PassengerRatedPayload struct {
-	TripID      string  `json:"trip_id"`
-	PassengerID string  `json:"passenger_id"`
-	Rating      float64 `json:"rating"`
-	Comment     string  `json:"comment"`
+	TripID      string    `json:"trip_id"`
+	PassengerID string    `json:"passenger_id"`
+	Rating      float64   `json:"rating"`
+	Comment     string    `json:"comment"`
 	RatedAt     time.Time `json:"rated_at"`
 }
 

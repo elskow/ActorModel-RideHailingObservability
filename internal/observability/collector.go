@@ -10,18 +10,18 @@ import (
 	"actor-model-observability/internal/actor"
 	"actor-model-observability/internal/config"
 	"actor-model-observability/internal/database"
+	"actor-model-observability/internal/logging"
 	"actor-model-observability/internal/models"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 // MetricsCollector collects and stores observability data
 type MetricsCollector struct {
 	db     *database.PostgresDB
 	redis  *redis.Client
-	logger *logrus.Entry
+	logger *logging.Logger
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -44,11 +44,11 @@ type MetricsCollector struct {
 }
 
 // NewMetricsCollector creates a new metrics collector
-func NewMetricsCollector(db *database.PostgresDB, redis *redis.Client, cfg *config.Config) *MetricsCollector {
+func NewMetricsCollector(db *database.PostgresDB, redis *redis.Client, cfg *config.Config, logger *logging.Logger) *MetricsCollector {
 	return &MetricsCollector{
 		db:                 db,
 		redis:              redis,
-		logger:             logrus.WithField("component", "metrics_collector"),
+		logger:             logger.WithComponent("metrics_collector"),
 		config:             cfg,
 		actorMetrics:       make(map[string]*models.ActorInstance),
 		messageMetrics:     make([]*models.ActorMessage, 0),
@@ -190,7 +190,7 @@ func (mc *MetricsCollector) RecordEvent(eventType, source, description string, m
 
 	// Log critical events
 	if eventType == "error" || eventType == "critical" {
-		mc.logger.WithFields(logrus.Fields{
+		mc.logger.WithFields(logging.Fields{
 			"event_type":  eventType,
 			"source":      source,
 			"description": description,
@@ -405,6 +405,11 @@ func (mc *MetricsCollector) flushEventLogs() {
 
 // storeActorMetricsInRedis stores actor metrics in Redis for real-time access
 func (mc *MetricsCollector) storeActorMetricsInRedis(instance *models.ActorInstance) {
+	// Skip Redis operations if Redis client is not available (e.g., in tests)
+	if mc.redis == nil {
+		return
+	}
+
 	key := fmt.Sprintf("actor:metrics:%s", instance.ID)
 	data, err := json.Marshal(instance)
 	if err != nil {
@@ -419,6 +424,11 @@ func (mc *MetricsCollector) storeActorMetricsInRedis(instance *models.ActorInsta
 
 // storeMessageInRedis stores message in Redis for real-time access
 func (mc *MetricsCollector) storeMessageInRedis(message *models.ActorMessage) {
+	// Skip Redis operations if Redis client is not available (e.g., in tests)
+	if mc.redis == nil {
+		return
+	}
+
 	key := fmt.Sprintf("message:%s", message.ID)
 	data, err := json.Marshal(message)
 	if err != nil {
@@ -439,6 +449,11 @@ func (mc *MetricsCollector) storeMessageInRedis(message *models.ActorMessage) {
 
 // storeSystemMetricsInRedis stores system metrics in Redis
 func (mc *MetricsCollector) storeSystemMetricsInRedis(metric *models.SystemMetric) {
+	// Skip Redis operations if Redis client is not available (e.g., in tests)
+	if mc.redis == nil {
+		return
+	}
+
 	key := "system:metrics:latest"
 	data, err := json.Marshal(metric)
 	if err != nil {
@@ -454,6 +469,11 @@ func (mc *MetricsCollector) storeSystemMetricsInRedis(metric *models.SystemMetri
 // GetRealtimeMetrics returns real-time metrics from Redis
 func (mc *MetricsCollector) GetRealtimeMetrics() (map[string]interface{}, error) {
 	result := make(map[string]interface{})
+
+	// Return empty result if Redis client is not available (e.g., in tests)
+	if mc.redis == nil {
+		return result, nil
+	}
 
 	// Get latest system metrics
 	systemData, err := mc.redis.Get(mc.ctx, "system:metrics:latest").Result()

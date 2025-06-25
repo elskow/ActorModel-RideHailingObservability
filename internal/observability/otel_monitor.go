@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"actor-model-observability/internal/config"
-
 	"actor-model-observability/internal/logging"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -18,7 +18,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -26,6 +26,7 @@ import (
 type OTelMonitor struct {
 	config         *config.OpenTelemetryConfig
 	logger         *logging.Logger
+	resource       *resource.Resource
 	meterProvider  *sdkmetric.MeterProvider
 	tracerProvider *sdktrace.TracerProvider
 	meter          metric.Meter
@@ -45,10 +46,10 @@ type OTelMonitor struct {
 }
 
 // NewOTelMonitor creates a new OpenTelemetry monitor
-func NewOTelMonitor(cfg *config.OpenTelemetryConfig) (*OTelMonitor, error) {
+func NewOTelMonitor(cfg *config.OpenTelemetryConfig, logger *logging.Logger) (*OTelMonitor, error) {
 	monitor := &OTelMonitor{
 		config:          cfg,
-		logger:          logging.GetGlobalLogger().WithComponent("otel_monitor"),
+		logger:          logger.WithComponent("otel_monitor"),
 		businessMetrics: make(map[string]metric.Float64Histogram),
 	}
 
@@ -84,7 +85,8 @@ func (om *OTelMonitor) initializeResource() error {
 		attributes = append(attributes, attribute.String(key, value))
 	}
 
-	_, err := resource.New(context.Background(),
+	var err error
+	om.resource, err = resource.New(context.Background(),
 		resource.WithAttributes(attributes...),
 	)
 	return err
@@ -107,6 +109,7 @@ func (om *OTelMonitor) initializeMetrics() error {
 
 	om.meterProvider = sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(reader),
+		sdkmetric.WithResource(om.resource),
 	)
 
 	otel.SetMeterProvider(om.meterProvider)
@@ -153,6 +156,7 @@ func (om *OTelMonitor) initializeTracing() error {
 	om.tracerProvider = sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(om.config.SampleRate)),
+		sdktrace.WithResource(om.resource),
 	)
 
 	otel.SetTracerProvider(om.tracerProvider)

@@ -524,7 +524,7 @@ func (h *ObservabilityHandler) GetTraditionalMetrics(c *gin.Context) {
 // @Param end_time query string false "End time (RFC3339 format)"
 // @Param limit query int false "Number of items per page" default(20)
 // @Param offset query int false "Number of items to skip" default(0)
-// @Success 200 {object} PaginatedResponse{data=[]traditional.TraditionalLog}
+// @Success 200 {object} PaginatedResponse{data=[]models.TraditionalLog}
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /api/v1/traditional/logs [get]

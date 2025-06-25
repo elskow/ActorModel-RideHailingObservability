@@ -7,3 +7,53 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: true
+    jsonData:
+      httpMethod: POST
+      queryTimeout: 60s
+      timeInterval: 30s
+      maxConcurrentShardQueries: 16
+      exemplarTraceIdDestinations:
+        - name: traceID
+          datasourceUid: jaeger
+    secureJsonData:
+      # Add any secure configuration here if needed
+
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    uid: jaeger
+    editable: true
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: prometheus
+        spanStartTimeShift: -1h
+        spanEndTimeShift: 1h
+        tags:
+          - key: service.name
+            value: service
+        filterByTraceID: false
+        filterBySpanID: false
+        customQuery: true
+        query: '{service="${__data.fields.service}"} |= "${__data.fields.traceID}"'
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: -1h
+        spanEndTimeShift: 1h
+        tags:
+          - key: service.name
+            value: service
+        queries:
+          - name: Sample query
+            query: 'sum(rate(traces_spanmetrics_latency_bucket{$$__tags}[5m]))'
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      spanBar:
+        type: Tag
+        tag: http.path
+    secureJsonData:
+      # Add any secure configuration here if needed

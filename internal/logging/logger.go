@@ -49,7 +49,7 @@ func NewLogger(cfg *config.LoggingConfig) (*Logger, error) {
 	// Configure handler options
 	var handler slog.Handler
 	handlerOpts := &slog.HandlerOptions{
-		Level: parseLevel(cfg.Level),
+		Level:     parseLevel(cfg.Level),
 		AddSource: cfg.Level == "debug", // Only add source info for debug level
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			// Customize attribute names to match previous format

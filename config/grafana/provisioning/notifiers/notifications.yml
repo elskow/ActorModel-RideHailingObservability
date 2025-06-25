@@ -1,0 +1,80 @@
+apiVersion: 1
+
+notifiers:
+  - name: email-notifier
+    type: email
+    uid: email001
+    org_id: 1
+    is_default: true
+    send_reminder: true
+    disable_resolve_message: false
+    frequency: "10s"
+    settings:
+      addresses: "admin@example.com"
+      subject: "Grafana Alert - {{ .GroupLabels.SortedPairs }}"
+      body: |
+        {{ range .Alerts }}
+        Alert: {{ .Annotations.summary }}
+        Description: {{ .Annotations.description }}
+        Labels:
+        {{ range .Labels.SortedPairs }}
+        - {{ .Name }}: {{ .Value }}
+        {{ end }}
+        {{ end }}
+
+  - name: slack-notifier
+    type: slack
+    uid: slack001
+    org_id: 1
+    is_default: false
+    send_reminder: true
+    disable_resolve_message: false
+    frequency: "10s"
+    settings:
+      url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+      username: "Grafana"
+      channel: "#alerts"
+      title: "Grafana Alert - {{ .GroupLabels.SortedPairs }}"
+      text: |
+        {{ range .Alerts }}
+        *Alert:* {{ .Annotations.summary }}
+        *Description:* {{ .Annotations.description }}
+        *Labels:*
+        {{ range .Labels.SortedPairs }}
+        • {{ .Name }}: {{ .Value }}
+        {{ end }}
+        {{ end }}
+      iconEmoji: ":exclamation:"
+      iconUrl: ""
+      mentionUsers: ""
+      mentionGroups: ""
+      mentionChannel: ""
+      token: ""
+
+  - name: webhook-notifier
+    type: webhook
+    uid: webhook001
+    org_id: 1
+    is_default: false
+    send_reminder: true
+    disable_resolve_message: false
+    frequency: "10s"
+    settings:
+      url: "http://localhost:8080/api/v1/alerts/webhook"
+      httpMethod: "POST"
+      username: ""
+      password: ""
+      authorization_scheme: ""
+      authorization_credentials: ""
+      maxAlerts: 0
+      title: "Grafana Alert - {{ .GroupLabels.SortedPairs }}"
+      message: |
+        {{ range .Alerts }}
+        Alert: {{ .Annotations.summary }}
+        Description: {{ .Annotations.description }}
+        Status: {{ .Status }}
+        Labels:
+        {{ range .Labels.SortedPairs }}
+        - {{ .Name }}: {{ .Value }}
+        {{ end }}
+        {{ end }}

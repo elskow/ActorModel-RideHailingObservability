@@ -28,13 +28,13 @@ type ActorRef struct {
 
 // SystemMetrics holds metrics for the entire actor system
 type SystemMetrics struct {
-	TotalActors        int           `json:"total_actors"`
-	ActiveActors       int           `json:"active_actors"`
-	TotalMessages      int64         `json:"total_messages"`
-	MessagesPerSecond  float64       `json:"messages_per_second"`
-	AverageLatency     time.Duration `json:"average_latency"`
-	SystemUptime       time.Duration `json:"system_uptime"`
-	LastMetricsUpdate  time.Time     `json:"last_metrics_update"`
+	TotalActors       int           `json:"total_actors"`
+	ActiveActors      int           `json:"active_actors"`
+	TotalMessages     int64         `json:"total_messages"`
+	MessagesPerSecond float64       `json:"messages_per_second"`
+	AverageLatency    time.Duration `json:"average_latency"`
+	SystemUptime      time.Duration `json:"system_uptime"`
+	LastMetricsUpdate time.Time     `json:"last_metrics_update"`
 }
 
 // ActorSystem manages a collection of actors
@@ -49,6 +49,8 @@ type ActorSystem struct {
 	metricsLock sync.RWMutex
 	startTime   time.Time
 	wg          sync.WaitGroup
+	started     bool
+	startedMutex sync.RWMutex
 
 	// Event handlers
 	onActorStarted func(actorID string)
@@ -60,9 +62,9 @@ type ActorSystem struct {
 // NewActorSystem creates a new actor system
 func NewActorSystem(name string) *ActorSystem {
 	return &ActorSystem{
-		name:    name,
-		actors:  make(map[string]*ActorRef),
-		logger:  logging.GetGlobalLogger().WithComponent("actor_system").WithField("system", name),
+		name:   name,
+		actors: make(map[string]*ActorRef),
+		logger: logging.GetGlobalLogger().WithComponent("actor_system").WithField("system", name),
 		metrics: SystemMetrics{
 			LastMetricsUpdate: time.Now(),
 		},
@@ -71,8 +73,17 @@ func NewActorSystem(name string) *ActorSystem {
 
 // Start initializes and starts the actor system
 func (s *ActorSystem) Start(ctx context.Context) error {
+	s.startedMutex.Lock()
+	defer s.startedMutex.Unlock()
+
+	if s.started {
+		s.logger.Warn("Actor system is already started")
+		return nil
+	}
+
 	s.ctx, s.cancel = context.WithCancel(ctx)
 	s.startTime = time.Now()
+	s.started = true
 
 	// Start metrics collection goroutine
 	s.wg.Add(1)
@@ -82,8 +93,23 @@ func (s *ActorSystem) Start(ctx context.Context) error {
 	return nil
 }
 
+// IsStarted returns whether the actor system is currently started
+func (s *ActorSystem) IsStarted() bool {
+	s.startedMutex.RLock()
+	defer s.startedMutex.RUnlock()
+	return s.started
+}
+
 // Stop gracefully shuts down the actor system
 func (s *ActorSystem) Stop() error {
+	s.startedMutex.Lock()
+	defer s.startedMutex.Unlock()
+
+	if !s.started {
+		s.logger.Warn("Actor system is already stopped")
+		return nil
+	}
+
 	s.logger.Info("Stopping actor system")
 
 	// Cancel context
@@ -103,6 +129,7 @@ func (s *ActorSystem) Stop() error {
 	// Wait for all goroutines to finish
 	s.wg.Wait()
 
+	s.started = false
 	s.logger.Info("Actor system stopped")
 	return nil
 }

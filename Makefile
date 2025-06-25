@@ -35,7 +35,7 @@ DB_URL=postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?ssl
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
-.PHONY: all build clean test coverage deps fmt vet lint run dev docker help
+.PHONY: all build clean test coverage deps fmt vet lint run dev docker help swagger docs
 
 # Default target
 all: clean deps fmt vet test build
@@ -144,10 +144,13 @@ install-dev-tools:
 swagger:
 	@echo "Generating Swagger documentation..."
 	@if command -v swag >/dev/null 2>&1; then \
-		swag init -g $(CMD_DIR)/main.go -o $(DOCS_DIR); \
+		swag init -g cmd/server/main.go -o docs; \
 	else \
 		echo "Swag not installed. Install it with: go install github.com/swaggo/swag/cmd/swag@latest"; \
 	fi
+
+# Alias for swagger target
+docs: swagger
 
 # Database operations
 db-create:

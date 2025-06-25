@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"actor-model-observability/internal/actor"
+	"actor-model-observability/internal/logging"
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/observability"
 	"actor-model-observability/internal/repository"
 	"actor-model-observability/internal/traditional"
 
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 // RideService handles ride-related business logic
@@ -25,7 +25,7 @@ type RideService struct {
 	actorSystem    *actor.ActorSystem
 	metricsCollector *observability.MetricsCollector
 	traditionalMonitor *traditional.TraditionalMonitor
-	logger         *logrus.Entry
+	logger         *logging.Logger
 	useActorModel  bool
 }
 
@@ -38,6 +38,7 @@ func NewRideService(
 	actorSystem *actor.ActorSystem,
 	metricsCollector *observability.MetricsCollector,
 	traditionalMonitor *traditional.TraditionalMonitor,
+	logger *logging.Logger,
 	useActorModel bool,
 ) *RideService {
 	return &RideService{
@@ -48,7 +49,7 @@ func NewRideService(
 		actorSystem:        actorSystem,
 		metricsCollector:   metricsCollector,
 		traditionalMonitor: traditionalMonitor,
-		logger:             logrus.WithField("service", "ride"),
+		logger:             logger.WithComponent("ride_service"),
 		useActorModel:      useActorModel,
 	}
 }
@@ -160,7 +161,7 @@ func (rs *RideService) requestRideActorModel(ctx context.Context, passenger *mod
 	// For demo purposes, we'll simulate the matching process
 	go rs.simulateRideMatching(ctx, trip)
 
-	rs.logger.WithFields(logrus.Fields{
+	rs.logger.WithFields(logging.Fields{
 		"trip_id":      trip.ID,
 		"passenger_id": passenger.ID,
 		"method":       "actor_model",
@@ -210,7 +211,7 @@ func (rs *RideService) requestRideTraditional(ctx context.Context, passenger *mo
 	}
 	rs.traditionalMonitor.RecordDatabaseOperation("UPDATE", "drivers", time.Since(driverUpdateStart), true)
 
-	rs.logger.WithFields(logrus.Fields{
+	rs.logger.WithFields(logging.Fields{
 		"trip_id":      trip.ID,
 		"passenger_id": passenger.ID,
 		"driver_id":    bestDriver.ID,
