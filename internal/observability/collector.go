@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"actor-model-observability/internal/actor"
+	"actor-model-observability/internal/config"
 	"actor-model-observability/internal/database"
 	"actor-model-observability/internal/models"
-	"actor-model-observability/pkg/config"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -19,21 +19,21 @@ import (
 
 // MetricsCollector collects and stores observability data
 type MetricsCollector struct {
-	db          *database.PostgresDB
-	redis       *redis.Client
-	logger      *logrus.Entry
-	ctx         context.Context
-	cancel      context.CancelFunc
-	wg          sync.WaitGroup
-	config      *config.Config
+	db     *database.PostgresDB
+	redis  *redis.Client
+	logger *logrus.Entry
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+	config *config.Config
 
 	// Metrics storage
-	actorMetrics    map[string]*models.ActorInstance
-	messageMetrics  []*models.ActorMessage
-	systemMetrics   []*models.SystemMetric
-	traces          []*models.DistributedTrace
-	eventLogs       []*models.EventLog
-	metricsLock     sync.RWMutex
+	actorMetrics   map[string]*models.ActorInstance
+	messageMetrics []*models.ActorMessage
+	systemMetrics  []*models.SystemMetric
+	traces         []*models.DistributedTrace
+	eventLogs      []*models.EventLog
+	metricsLock    sync.RWMutex
 
 	// Collection intervals
 	collectionInterval time.Duration
@@ -57,7 +57,7 @@ func NewMetricsCollector(db *database.PostgresDB, redis *redis.Client, cfg *conf
 		eventLogs:          make([]*models.EventLog, 0),
 		collectionInterval: cfg.Observability.MetricsInterval,
 		flushInterval:      cfg.Observability.MetricsInterval, // use same interval for flushing
-		batchSize:          100, // default batch size
+		batchSize:          100,                               // default batch size
 	}
 }
 
@@ -206,7 +206,7 @@ func (mc *MetricsCollector) recordActorMetrics(actorRef *actor.ActorRef) {
 
 	// Parse actorRef.ID to UUID
 	actorUUID, _ := uuid.Parse(actorRef.ID)
-	
+
 	// Convert actorRef.Type to ActorType
 	var actorType models.ActorType
 	switch actorRef.Type {

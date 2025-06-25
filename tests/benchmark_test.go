@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"actor-model-observability/internal/actor"
-	pkgconfig "actor-model-observability/pkg/config"
 	internalconfig "actor-model-observability/internal/config"
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/observability"
@@ -38,12 +37,12 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 	b.Helper()
 
 	// Create configuration for observability (pkg/config)
-	pkgCfg := &pkgconfig.Config{
-		Server: pkgconfig.ServerConfig{
-			Port: 8080,
+	pkgCfg := &internalconfig.Config{
+		Server: internalconfig.ServerConfig{
+			Port: "8080",
 			Mode: "test",
 		},
-		Actor: pkgconfig.ActorConfig{
+		Actor: internalconfig.ActorConfig{
 			MessageBufferSize: 100,
 		},
 	}

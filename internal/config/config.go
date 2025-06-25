@@ -9,12 +9,13 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Actor    ActorConfig
-	Logging  LoggingConfig
-	Metrics  MetricsConfig
+	Server        ServerConfig
+	Database      DatabaseConfig
+	Redis         RedisConfig
+	Actor         ActorConfig
+	Logging       LoggingConfig
+	Observability ObservabilityConfig
+	Metrics       MetricsConfig
 }
 
 // ServerConfig holds HTTP server configuration
@@ -74,6 +75,15 @@ type LoggingConfig struct {
 	MaxBackups int
 	MaxAge     int // days
 	Compress   bool
+}
+
+// ObservabilityConfig holds observability configuration
+type ObservabilityConfig struct {
+	TracingEnabled     bool
+	TracingEndpoint    string
+	TracingServiceName string
+	MetricsEnabled     bool
+	MetricsInterval    time.Duration
 }
 
 // MetricsConfig holds metrics collection configuration
@@ -136,6 +146,13 @@ func Load() (*Config, error) {
 			MaxBackups: getIntEnv("LOG_MAX_BACKUPS", 3),
 			MaxAge:     getIntEnv("LOG_MAX_AGE", 28),
 			Compress:   getBoolEnv("LOG_COMPRESS", true),
+		},
+		Observability: ObservabilityConfig{
+			TracingEnabled:     getBoolEnv("TRACING_ENABLED", true),
+			TracingEndpoint:    getEnv("TRACING_ENDPOINT", "http://localhost:14268/api/traces"),
+			TracingServiceName: getEnv("TRACING_SERVICE_NAME", "actor-observability"),
+			MetricsEnabled:     getBoolEnv("METRICS_ENABLED", true),
+			MetricsInterval:    getDurationEnv("METRICS_INTERVAL", 10*time.Second),
 		},
 		Metrics: MetricsConfig{
 			Enabled:         getBoolEnv("METRICS_ENABLED", true),

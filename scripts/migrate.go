@@ -1,6 +1,7 @@
 package main
 
 import (
+	"actor-model-observability/internal/config"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"sort"
 	"strings"
 
-	"actor-model-observability/pkg/config"
 	_ "github.com/lib/pq"
 )
 
@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// Connect to database
-	db, err := sql.Open("postgres", cfg.GetDatabaseDSN())
+	db, err := sql.Open("postgres", cfg.GetDSN())
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}

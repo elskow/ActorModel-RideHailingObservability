@@ -19,7 +19,6 @@ import (
 	"actor-model-observability/internal/router"
 	"actor-model-observability/internal/service"
 	"actor-model-observability/internal/traditional"
-	pkgconfig "actor-model-observability/pkg/config"
 
 	"github.com/gin-gonic/gin"
 )
@@ -95,17 +94,11 @@ func main() {
 	// Initialize actor system
 	actorSystem := actor.NewActorSystem("main-system")
 
-	// Load pkg config for metrics collector
-	pkgCfg, err := pkgconfig.Load()
-	if err != nil {
-		logger.Fatal("Failed to load pkg config", err, logging.Fields{})
-	}
-
 	// Initialize observability collector
 	metricsCollector := observability.NewMetricsCollector(
 		db,
 		redisClient.Client,
-		pkgCfg,
+		cfg,
 	)
 
 	// Initialize traditional monitor
