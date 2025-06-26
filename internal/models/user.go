@@ -16,13 +16,13 @@ const (
 
 // User represents a user in the system
 type User struct {
-	ID        uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	Email     string    `json:"email" gorm:"uniqueIndex;not null"`
-	Phone     string    `json:"phone" gorm:"uniqueIndex;not null"`
-	Name      string    `json:"name" gorm:"not null"`
-	UserType  UserType  `json:"user_type" gorm:"not null;check:user_type IN ('passenger', 'driver')"`
-	CreatedAt time.Time `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
+	ID        uuid.UUID `json:"id" db:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Email     string    `json:"email" db:"email" gorm:"uniqueIndex;not null"`
+	Phone     string    `json:"phone" db:"phone" gorm:"uniqueIndex;not null"`
+	Name      string    `json:"name" db:"name" gorm:"not null"`
+	UserType  UserType  `json:"user_type" db:"user_type" gorm:"not null;check:user_type IN ('passenger', 'driver')"`
+	CreatedAt time.Time `json:"created_at" db:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 // TableName returns the table name for User

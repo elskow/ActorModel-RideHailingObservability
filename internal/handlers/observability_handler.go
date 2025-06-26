@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository"
 	"github.com/gin-gonic/gin"
 )
@@ -139,7 +140,7 @@ func (h *ObservabilityHandler) GetActorMessages(c *gin.Context) {
 	}
 
 	// Get messages from repository
-	var messages interface{}
+	var messages []*models.ActorMessage
 	if startTime != "" && endTime != "" {
 		messages, err = h.obsRepo.GetMessagesByTimeRange(c.Request.Context(), startTime, endTime, limit, offset)
 	} else {
@@ -203,8 +204,8 @@ func (h *ObservabilityHandler) GetSystemMetrics(c *gin.Context) {
 		return
 	}
 
-	// Get metrics from repository
-	var metrics interface{}
+	// Get system metrics from repository
+	var metrics []*models.SystemMetric
 	if startTime != "" && endTime != "" {
 		metrics, err = h.obsRepo.GetMetricsByTimeRange(c.Request.Context(), startTime, endTime, limit, offset)
 	} else {
@@ -266,8 +267,8 @@ func (h *ObservabilityHandler) GetDistributedTraces(c *gin.Context) {
 		return
 	}
 
-	// Get traces from repository
-	var traces interface{}
+	// Get distributed traces from repository
+	var traces []*models.DistributedTrace
 	if traceID != "" {
 		traces, err = h.obsRepo.GetTracesByTraceID(c.Request.Context(), traceID)
 	} else {
@@ -334,7 +335,7 @@ func (h *ObservabilityHandler) GetEventLogs(c *gin.Context) {
 	}
 
 	// Get event logs from repository
-	var logs interface{}
+	var logs []*models.EventLog
 	if startTime != "" && endTime != "" {
 		logs, err = h.obsRepo.GetEventLogsByTimeRange(c.Request.Context(), startTime, endTime, limit, offset)
 	} else {
@@ -489,7 +490,7 @@ func (h *ObservabilityHandler) GetTraditionalMetrics(c *gin.Context) {
 	}
 
 	// Get traditional metrics from repository
-	var metrics interface{}
+	var metrics []*models.TraditionalMetric
 	if startTime != "" && endTime != "" {
 		metrics, err = h.traditionalRepo.GetTraditionalMetricsByTimeRange(c.Request.Context(), startTime, endTime, limit, offset)
 	} else {
@@ -556,7 +557,7 @@ func (h *ObservabilityHandler) GetTraditionalLogs(c *gin.Context) {
 	}
 
 	// Get traditional logs from repository
-	var logs interface{}
+	var logs []*models.TraditionalLog
 	if startTime != "" && endTime != "" {
 		logs, err = h.traditionalRepo.GetTraditionalLogsByTimeRange(c.Request.Context(), startTime, endTime, limit, offset)
 	} else {
@@ -621,14 +622,14 @@ func (h *ObservabilityHandler) GetServiceHealth(c *gin.Context) {
 	}
 
 	// Get service health from repository
-	var health interface{}
+	var health []*models.ServiceHealth
 	// TODO: Implement service health methods in TraditionalRepository
 	// if startTime != "" && endTime != "" {
 	//	health, err = h.traditionalRepo.GetServiceHealthByTimeRange(c.Request.Context(), serviceName, startTime, endTime, limit, offset)
 	// } else {
 	//	health, err = h.traditionalRepo.ListServiceHealth(c.Request.Context(), serviceName, limit, offset)
 	// }
-	health = []interface{}{} // Placeholder empty slice
+	health = []*models.ServiceHealth{} // Placeholder empty slice
 	err = nil
 
 	if err != nil {

@@ -18,8 +18,10 @@ import (
 	"actor-model-observability/internal/service"
 	"actor-model-observability/internal/traditional"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/mock"
+
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -96,6 +98,34 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 	driverRepo := &MockDriverRepository{}
 	passengerRepo := &MockPassengerRepository{}
 	tripRepo := &MockTripRepository{}
+
+	// Setup mock expectations for benchmark tests
+	// Mock passenger repository
+	passengerRepo.On("GetByID", mock.Anything, mock.AnythingOfType("string")).Return(&models.Passenger{
+		ID:     uuid.New(),
+		UserID: uuid.New(),
+		Rating: 4.5,
+	}, nil)
+
+	// Mock driver repository
+	lat := 40.7128
+	lng := -74.0060
+	mockDrivers := []*models.Driver{
+		{
+			ID:               uuid.New(),
+			UserID:           uuid.New(),
+			VehicleType:      "sedan",
+			VehiclePlate:     "ABC123",
+			Status:           "online",
+			CurrentLatitude:  &lat,
+			CurrentLongitude: &lng,
+			Rating:           4.8,
+		},
+	}
+	driverRepo.On("GetOnlineDrivers", mock.Anything).Return(mockDrivers, nil)
+
+	// Mock trip repository
+	tripRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.Trip")).Return(nil)
 
 	// Initialize ride service
 	rideService := service.NewRideService(
@@ -198,209 +228,7 @@ func setupTraditionalRouter(rideService *service.RideService, traditionalMonitor
 	return router
 }
 
-// Mock repositories for testing
-type MockUserRepository struct{}
-
-func (m *MockUserRepository) Create(ctx context.Context, user *models.User) error {
-	user.ID = uuid.New()
-	return nil
-}
-
-func (m *MockUserRepository) GetByID(ctx context.Context, id string) (*models.User, error) {
-	userID, _ := uuid.Parse(id)
-	return &models.User{ID: userID, Email: "test@example.com", Name: "Test User"}, nil
-}
-
-func (m *MockUserRepository) Update(ctx context.Context, user *models.User) error {
-	return nil
-}
-
-func (m *MockUserRepository) Delete(ctx context.Context, id string) error {
-	return nil
-}
-
-func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	return &models.User{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), Email: email, Name: "Test User"}, nil
-}
-
-func (m *MockUserRepository) GetByPhone(ctx context.Context, phone string) (*models.User, error) {
-	return &models.User{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), Phone: phone, Name: "Test User"}, nil
-}
-
-func (m *MockUserRepository) List(ctx context.Context, limit, offset int) ([]*models.User, error) {
-	return []*models.User{}, nil
-}
-
-type MockDriverRepository struct{}
-
-func (m *MockDriverRepository) Create(ctx context.Context, driver *models.Driver) error {
-	driver.ID = uuid.New()
-	return nil
-}
-
-func (m *MockDriverRepository) GetByID(ctx context.Context, id string) (*models.Driver, error) {
-	driverID, _ := uuid.Parse(id)
-	lat := -6.2088
-	lng := 106.8456
-	return &models.Driver{
-		ID:               driverID,
-		UserID:           uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
-		Status:           models.DriverStatusOnline,
-		CurrentLatitude:  &lat,
-		CurrentLongitude: &lng,
-	}, nil
-}
-
-func (m *MockDriverRepository) Update(ctx context.Context, driver *models.Driver) error {
-	return nil
-}
-
-func (m *MockDriverRepository) Delete(ctx context.Context, id string) error {
-	return nil
-}
-
-func (m *MockDriverRepository) GetAvailableDrivers(ctx context.Context, location *models.Location, radius float64) ([]*models.Driver, error) {
-	return []*models.Driver{
-		{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), UserID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), Status: models.DriverStatusOnline, CurrentLatitude: &location.Latitude, CurrentLongitude: &location.Longitude},
-		{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"), UserID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"), Status: models.DriverStatusOnline, CurrentLatitude: &location.Latitude, CurrentLongitude: &location.Longitude},
-	}, nil
-}
-
-func (m *MockDriverRepository) UpdateLocation(ctx context.Context, driverID string, lat, lng float64) error {
-	return nil
-}
-
-func (m *MockDriverRepository) UpdateStatus(ctx context.Context, driverID string, status models.DriverStatus) error {
-	return nil
-}
-
-func (m *MockDriverRepository) GetByUserID(ctx context.Context, userID string) (*models.Driver, error) {
-	userUUID, _ := uuid.Parse(userID)
-	lat := -6.2088
-	lng := 106.8456
-	return &models.Driver{
-		ID:               uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
-		UserID:           userUUID,
-		Status:           models.DriverStatusOnline,
-		CurrentLatitude:  &lat,
-		CurrentLongitude: &lng,
-	}, nil
-}
-
-func (m *MockDriverRepository) GetDriversInRadius(ctx context.Context, lat, lng, radiusKm float64) ([]*models.Driver, error) {
-	return []*models.Driver{
-		{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), UserID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), Status: models.DriverStatusOnline, CurrentLatitude: &lat, CurrentLongitude: &lng},
-	}, nil
-}
-
-func (m *MockDriverRepository) GetOnlineDrivers(ctx context.Context) ([]*models.Driver, error) {
-	lat := -6.2088
-	lng := 106.8456
-	return []*models.Driver{
-		{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), UserID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), Status: models.DriverStatusOnline, CurrentLatitude: &lat, CurrentLongitude: &lng},
-	}, nil
-}
-
-func (m *MockDriverRepository) List(ctx context.Context, limit, offset int) ([]*models.Driver, error) {
-	return []*models.Driver{}, nil
-}
-
-type MockPassengerRepository struct{}
-
-func (m *MockPassengerRepository) Create(ctx context.Context, passenger *models.Passenger) error {
-	passenger.ID = uuid.New()
-	return nil
-}
-
-func (m *MockPassengerRepository) GetByID(ctx context.Context, id string) (*models.Passenger, error) {
-	passengerID, _ := uuid.Parse(id)
-	return &models.Passenger{ID: passengerID, UserID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")}, nil
-}
-
-func (m *MockPassengerRepository) Update(ctx context.Context, passenger *models.Passenger) error {
-	return nil
-}
-
-func (m *MockPassengerRepository) Delete(ctx context.Context, id string) error {
-	return nil
-}
-
-func (m *MockPassengerRepository) GetByUserID(ctx context.Context, userID string) (*models.Passenger, error) {
-	return &models.Passenger{ID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"), UserID: uuid.MustParse(userID)}, nil
-}
-
-func (m *MockPassengerRepository) List(ctx context.Context, limit, offset int) ([]*models.Passenger, error) {
-	return []*models.Passenger{}, nil
-}
-
-type MockTripRepository struct{}
-
-func (m *MockTripRepository) Create(ctx context.Context, trip *models.Trip) error {
-	trip.ID = uuid.New()
-	trip.Status = models.TripStatusRequested
-	trip.CreatedAt = time.Now()
-	return nil
-}
-
-func (m *MockTripRepository) GetByID(ctx context.Context, id string) (*models.Trip, error) {
-	parsedID, _ := uuid.Parse(id)
-	passengerID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440001")
-	driverID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440002")
-	return &models.Trip{
-		ID:                   parsedID,
-		PassengerID:          passengerID,
-		DriverID:             &driverID,
-		Status:               models.TripStatusRequested,
-		PickupLatitude:       -6.2088,
-		PickupLongitude:      106.8456,
-		DestinationLatitude:  -6.1944,
-		DestinationLongitude: 106.8229,
-	}, nil
-}
-
-func (m *MockTripRepository) Update(ctx context.Context, trip *models.Trip) error {
-	return nil
-}
-
-func (m *MockTripRepository) Delete(ctx context.Context, id string) error {
-	return nil
-}
-
-func (m *MockTripRepository) GetActiveTrips(ctx context.Context) ([]*models.Trip, error) {
-	return []*models.Trip{}, nil
-}
-
-func (m *MockTripRepository) GetTripsByPassenger(ctx context.Context, passengerID string) ([]*models.Trip, error) {
-	return []*models.Trip{}, nil
-}
-
-func (m *MockTripRepository) GetTripsByDriver(ctx context.Context, driverID string) ([]*models.Trip, error) {
-	return []*models.Trip{}, nil
-}
-
-func (m *MockTripRepository) UpdateStatus(ctx context.Context, tripID string, status models.TripStatus) error {
-	return nil
-}
-
-func (m *MockTripRepository) GetByDriverID(ctx context.Context, driverID string, limit, offset int) ([]*models.Trip, error) {
-	return []*models.Trip{}, nil
-}
-
-func (m *MockTripRepository) GetTripsByStatus(ctx context.Context, status models.TripStatus, limit, offset int) ([]*models.Trip, error) {
-	return []*models.Trip{}, nil
-}
-
-func (m *MockTripRepository) GetTripsByDateRange(ctx context.Context, startDate, endDate string, limit, offset int) ([]*models.Trip, error) {
-	return []*models.Trip{}, nil
-}
-
-func (m *MockTripRepository) GetByPassengerID(ctx context.Context, passengerID string, limit, offset int) ([]*models.Trip, error) {
-	return []*models.Trip{}, nil
-}
-
-func (m *MockTripRepository) List(ctx context.Context, limit, offset int) ([]*models.Trip, error) {
-	return []*models.Trip{}, nil
-}
+// Mock repositories are now defined in test_helpers.go
 
 // Benchmark tests
 
@@ -626,24 +454,69 @@ func BenchmarkScalability(b *testing.B) {
 // TestBenchmarkComparison runs a comparison test between actor and traditional approaches
 func TestBenchmarkComparison(t *testing.T) {
 	// Test actor performance
-	actorResult := testing.Benchmark(BenchmarkActorRideRequest)
+	actorResult := testing.Benchmark(func(b *testing.B) {
+		setup := setupBenchmark(b)
+		server := httptest.NewServer(setup.actorRouter)
+		defer server.Close()
+
+		rideRequest := models.RideRequest{
+			PassengerID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+			PickupLat:      -6.2088,
+			PickupLng:      106.8456,
+			DestinationLat: -6.1944,
+			DestinationLng: 106.8229,
+		}
+
+		payload, _ := json.Marshal(rideRequest)
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			resp, err := http.Post(server.URL+"/api/v1/rides/request", "application/json", strings.NewReader(string(payload)))
+			if err != nil {
+				b.Error(err)
+				continue
+			}
+			resp.Body.Close()
+		}
+	})
 
 	// Test traditional performance
-	traditionalResult := testing.Benchmark(BenchmarkTraditionalRideRequest)
+	traditionalResult := testing.Benchmark(func(b *testing.B) {
+		setup := setupBenchmark(b)
+		server := httptest.NewServer(setup.traditionalRouter)
+		defer server.Close()
+
+		rideRequest := models.RideRequest{
+			PassengerID:    uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+			PickupLat:      -6.2088,
+			PickupLng:      106.8456,
+			DestinationLat: -6.1944,
+			DestinationLng: 106.8229,
+		}
+
+		payload, _ := json.Marshal(rideRequest)
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			resp, err := http.Post(server.URL+"/api/v1/traditional/rides/request", "application/json", strings.NewReader(string(payload)))
+			if err != nil {
+				b.Error(err)
+				continue
+			}
+			resp.Body.Close()
+		}
+	})
 
 	// Compare results
 	actorNsPerOp := actorResult.NsPerOp()
 	traditionalNsPerOp := traditionalResult.NsPerOp()
 
-	t.Logf("Actor model: %d ns/op", actorNsPerOp)
-	t.Logf("Traditional: %d ns/op", traditionalNsPerOp)
-
 	if actorNsPerOp < traditionalNsPerOp {
 		performanceGain := float64(traditionalNsPerOp-actorNsPerOp) / float64(traditionalNsPerOp) * 100
-		t.Logf("Actor model is %.2f%% faster", performanceGain)
+		_ = performanceGain // Performance gain calculated but not logged
 	} else {
 		performanceLoss := float64(actorNsPerOp-traditionalNsPerOp) / float64(traditionalNsPerOp) * 100
-		t.Logf("Actor model is %.2f%% slower", performanceLoss)
+		_ = performanceLoss // Performance loss calculated but not logged
 	}
 
 	// Ensure both approaches work

@@ -8,13 +8,13 @@ import (
 
 // Passenger represents a passenger in the system
 type Passenger struct {
-	ID         uuid.UUID `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID     uuid.UUID `json:"user_id" gorm:"type:uuid;not null;index"`
+	ID         uuid.UUID `json:"id" db:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID     uuid.UUID `json:"user_id" db:"user_id" gorm:"type:uuid;not null;index"`
 	User       *User     `json:"user,omitempty" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	Rating     float64   `json:"rating" gorm:"type:decimal(3,2);default:5.00"`
-	TotalTrips int       `json:"total_trips" gorm:"default:0"`
-	CreatedAt  time.Time `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt  time.Time `json:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
+	Rating     float64   `json:"rating" db:"rating" gorm:"type:decimal(3,2);default:5.00"`
+	TotalTrips int       `json:"total_trips" db:"total_trips" gorm:"default:0"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
+	UpdatedAt  time.Time `json:"updated_at" db:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 // TableName returns the table name for Passenger

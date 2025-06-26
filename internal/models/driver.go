@@ -17,19 +17,19 @@ const (
 
 // Driver represents a driver in the system
 type Driver struct {
-	ID               uuid.UUID    `json:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	UserID           uuid.UUID    `json:"user_id" gorm:"type:uuid;not null;index"`
+	ID               uuid.UUID    `json:"id" db:"id" gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserID           uuid.UUID    `json:"user_id" db:"user_id" gorm:"type:uuid;not null;index"`
 	User             *User        `json:"user,omitempty" gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE"`
-	LicenseNumber    string       `json:"license_number" gorm:"uniqueIndex;not null"`
-	VehicleType      string       `json:"vehicle_type" gorm:"not null"`
-	VehiclePlate     string       `json:"vehicle_plate" gorm:"not null"`
-	Status           DriverStatus `json:"status" gorm:"default:'offline';check:status IN ('online', 'offline', 'busy')"`
-	CurrentLatitude  *float64     `json:"current_latitude" gorm:"type:decimal(10,8)"`
-	CurrentLongitude *float64     `json:"current_longitude" gorm:"type:decimal(11,8)"`
-	Rating           float64      `json:"rating" gorm:"type:decimal(3,2);default:5.00"`
-	TotalTrips       int          `json:"total_trips" gorm:"default:0"`
-	CreatedAt        time.Time    `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt        time.Time    `json:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
+	LicenseNumber    string       `json:"license_number" db:"license_number" gorm:"uniqueIndex;not null"`
+	VehicleType      string       `json:"vehicle_type" db:"vehicle_type" gorm:"not null"`
+	VehiclePlate     string       `json:"vehicle_plate" db:"vehicle_plate" gorm:"not null"`
+	Status           DriverStatus `json:"status" db:"status" gorm:"default:'offline';check:status IN ('online', 'offline', 'busy')"`
+	CurrentLatitude  *float64     `json:"current_latitude" db:"current_latitude" gorm:"type:decimal(10,8)"`
+	CurrentLongitude *float64     `json:"current_longitude" db:"current_longitude" gorm:"type:decimal(11,8)"`
+	Rating           float64      `json:"rating" db:"rating" gorm:"type:decimal(3,2);default:5.00"`
+	TotalTrips       int          `json:"total_trips" db:"total_trips" gorm:"default:0"`
+	CreatedAt        time.Time    `json:"created_at" db:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
+	UpdatedAt        time.Time    `json:"updated_at" db:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
 }
 
 // TableName returns the table name for Driver
