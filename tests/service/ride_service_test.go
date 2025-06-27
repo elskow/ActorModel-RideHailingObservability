@@ -1,4 +1,4 @@
-package tests
+package service
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	"actor-model-observability/internal/observability"
 	"actor-model-observability/internal/service"
 	"actor-model-observability/internal/traditional"
+	"actor-model-observability/tests/utils"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -19,16 +20,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Mock repositories are now defined in test_helpers.go
+// Mock repositories are now defined in common.go
 
 // Mock components are no longer needed as we use real implementations
 
 func TestRideService_RequestRide_ActorModel_Success(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{
@@ -90,10 +91,10 @@ func TestRideService_RequestRide_ActorModel_Success(t *testing.T) {
 
 func TestRideService_RequestRide_Traditional_Success(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{
@@ -167,10 +168,10 @@ func TestRideService_RequestRide_Traditional_Success(t *testing.T) {
 
 func TestRideService_RequestRide_PassengerNotFound(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{
@@ -217,10 +218,10 @@ func TestRideService_RequestRide_PassengerNotFound(t *testing.T) {
 
 func TestRideService_RequestRide_InvalidPassengerID(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{
@@ -270,10 +271,10 @@ func TestRideService_RequestRide_InvalidPassengerID(t *testing.T) {
 
 func TestRideService_RequestRide_TripCreateFailed(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{
@@ -326,10 +327,10 @@ func TestRideService_RequestRide_TripCreateFailed(t *testing.T) {
 
 func TestRideService_RequestRide_Traditional_NoDriversAvailable(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{
@@ -384,10 +385,10 @@ func TestRideService_RequestRide_Traditional_NoDriversAvailable(t *testing.T) {
 
 func TestRideService_CancelRide_Success(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{
@@ -435,10 +436,10 @@ func TestRideService_CancelRide_Success(t *testing.T) {
 
 func TestRideService_GetTripStatus_Success(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{
@@ -488,10 +489,10 @@ func TestRideService_GetTripStatus_Success(t *testing.T) {
 
 func TestRideService_ListRides_Success(t *testing.T) {
 	// Setup mocks
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Create logger with proper config
 	loggerCfg := &config.LoggingConfig{

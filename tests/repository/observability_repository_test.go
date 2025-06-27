@@ -1,4 +1,4 @@
-package tests
+package repository
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository/postgres"
+	"actor-model-observability/tests/utils"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestObservabilityRepository_CreateActorInstance_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -49,7 +50,7 @@ func TestObservabilityRepository_CreateActorInstance_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_GetActorInstance_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -80,7 +81,7 @@ func TestObservabilityRepository_GetActorInstance_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_CreateActorMessage_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -120,7 +121,7 @@ func TestObservabilityRepository_CreateActorMessage_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_ListActorMessages_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -157,7 +158,7 @@ func TestObservabilityRepository_ListActorMessages_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_CreateSystemMetric_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -190,7 +191,7 @@ func TestObservabilityRepository_CreateSystemMetric_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_ListSystemMetrics_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -224,7 +225,7 @@ func TestObservabilityRepository_ListSystemMetrics_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_CreateDistributedTrace_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -243,7 +244,7 @@ func TestObservabilityRepository_CreateDistributedTrace_Success(t *testing.T) {
 		OperationName: "ride_request",
 		StartTime:     now,
 		EndTime:       &now,
-		DurationMs:    IntPtr(100),
+		DurationMs:    utils.IntPtr(100),
 		Status:        models.TraceStatusOK,
 		Tags:          json.RawMessage(`{"user_id": "123", "trip_id": "456"}`),
 		Logs:          json.RawMessage(`{"events": []}`),
@@ -253,7 +254,7 @@ func TestObservabilityRepository_CreateDistributedTrace_Success(t *testing.T) {
 	mock.ExpectExec(`INSERT INTO distributed_traces`).
 		WithArgs(
 			traceID, traceID, spanID, &parentSpanID, "ride_request",
-			nil, nil, now, &now, IntPtr(100), models.TraceStatusOK,
+			nil, nil, now, &now, utils.IntPtr(100), models.TraceStatusOK,
 			json.RawMessage(`{"user_id": "123", "trip_id": "456"}`),
 			json.RawMessage(`{"events": []}`), now,
 		).
@@ -266,7 +267,7 @@ func TestObservabilityRepository_CreateDistributedTrace_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_GetTracesByTraceID_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -307,7 +308,7 @@ func TestObservabilityRepository_GetTracesByTraceID_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_CreateEventLog_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -342,7 +343,7 @@ func TestObservabilityRepository_CreateEventLog_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_ListEventLogs_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)
@@ -375,7 +376,7 @@ func TestObservabilityRepository_ListEventLogs_Success(t *testing.T) {
 }
 
 func TestObservabilityRepository_GetEventLogsByTimeRange_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewObservabilityRepository(db)

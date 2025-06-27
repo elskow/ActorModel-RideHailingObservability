@@ -34,6 +34,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -47,6 +48,7 @@ import (
 	"actor-model-observability/internal/config"
 	"actor-model-observability/internal/database"
 	"actor-model-observability/internal/logging"
+	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/observability"
 	"actor-model-observability/internal/repository/postgres"
 	"actor-model-observability/internal/router"
@@ -54,6 +56,7 @@ import (
 	"actor-model-observability/internal/traditional"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -116,6 +119,135 @@ func main() {
 
 	// Initialize actor system
 	actorSystem := actor.NewActorSystem("main-system")
+
+	// Set up actor system event handlers for observability
+	actorSystem.SetEventHandlers(
+		// onActorStarted
+		func(actorID string) {
+			// Get actor reference to determine type
+			actorRef, err := actorSystem.GetActor(actorID)
+			if err != nil {
+				logger.WithError(err).WithField("actor_id", actorID).Error("Failed to get actor reference for observability")
+				return
+			}
+
+			// Create actor instance record
+			actorInstance := &models.ActorInstance{
+				ID:            uuid.New(),
+				ActorType:     models.ActorType(actorRef.Type),
+				ActorID:       actorID,
+				EntityID:      nil, // Will be set when actor processes specific entities
+				Status:        models.ActorStatusActive,
+				LastHeartbeat: time.Now(),
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
+			}
+
+			if err := observabilityRepo.CreateActorInstance(context.Background(), actorInstance); err != nil {
+				logger.WithError(err).WithFields(logging.Fields{
+					"actor_id":   actorID,
+					"actor_type": actorRef.Type,
+				}).Error("Failed to create actor instance record")
+			}
+
+			// Create event log for actor started
+			eventData, _ := json.Marshal(map[string]interface{}{
+				"actor_id":   actorID,
+				"actor_type": actorRef.Type,
+				"status":     "started",
+			})
+			eventLog := &models.EventLog{
+				ID:            uuid.New(),
+				EventType:     "actor_started",
+				EventCategory: models.EventCategorySystem,
+				ActorType:     &actorInstance.ActorType,
+				ActorID:       &actorID,
+				EventData:     eventData,
+				Severity:      models.EventSeverityInfo,
+				Message:       fmt.Sprintf("Actor %s of type %s started", actorID, actorRef.Type),
+				Timestamp:     time.Now(),
+				CreatedAt:     time.Now(),
+			}
+			if err := observabilityRepo.CreateEventLog(context.Background(), eventLog); err != nil {
+				logger.WithError(err).Error("Failed to create actor started event log")
+			}
+		},
+		// onActorStopped
+		func(actorID string) {
+			// Create event log for actor stopped
+			eventData, _ := json.Marshal(map[string]interface{}{
+				"actor_id": actorID,
+				"status":   "stopped",
+			})
+			eventLog := &models.EventLog{
+				ID:            uuid.New(),
+				EventType:     "actor_stopped",
+				EventCategory: models.EventCategorySystem,
+				ActorID:       &actorID,
+				EventData:     eventData,
+				Severity:      models.EventSeverityInfo,
+				Message:       fmt.Sprintf("Actor %s stopped", actorID),
+				Timestamp:     time.Now(),
+				CreatedAt:     time.Now(),
+			}
+			if err := observabilityRepo.CreateEventLog(context.Background(), eventLog); err != nil {
+				logger.WithError(err).Error("Failed to create actor stopped event log")
+			}
+			logger.WithField("actor_id", actorID).Debug("Actor stopped - observability tracking")
+		},
+		// onActorFailed
+		func(actorID string, err error) {
+			// Create event log for actor failed
+			eventData, _ := json.Marshal(map[string]interface{}{
+				"actor_id": actorID,
+				"error":    err.Error(),
+				"status":   "failed",
+			})
+			eventLog := &models.EventLog{
+				ID:            uuid.New(),
+				EventType:     "actor_failed",
+				EventCategory: models.EventCategoryError,
+				ActorID:       &actorID,
+				EventData:     eventData,
+				Severity:      models.EventSeverityError,
+				Message:       fmt.Sprintf("Actor %s failed: %s", actorID, err.Error()),
+				Timestamp:     time.Now(),
+				CreatedAt:     time.Now(),
+			}
+			if createErr := observabilityRepo.CreateEventLog(context.Background(), eventLog); createErr != nil {
+				logger.WithError(createErr).Error("Failed to create actor failed event log")
+			}
+			logger.WithError(err).WithField("actor_id", actorID).Error("Actor failed - observability tracking")
+		},
+		// onMessage
+		func(from, to, messageType string) {
+			// Create event log for message sent
+			eventData, _ := json.Marshal(map[string]interface{}{
+				"from":         from,
+				"to":           to,
+				"message_type": messageType,
+			})
+			eventLog := &models.EventLog{
+				ID:            uuid.New(),
+				EventType:     "message_sent",
+				EventCategory: models.EventCategoryBusiness,
+				ActorID:       &from,
+				EventData:     eventData,
+				Severity:      models.EventSeverityDebug,
+				Message:       fmt.Sprintf("Message %s sent from %s to %s", messageType, from, to),
+				Timestamp:     time.Now(),
+				CreatedAt:     time.Now(),
+			}
+			if err := observabilityRepo.CreateEventLog(context.Background(), eventLog); err != nil {
+				logger.WithError(err).Error("Failed to create message sent event log")
+			}
+			logger.WithFields(logging.Fields{
+				"from":         from,
+				"to":           to,
+				"message_type": messageType,
+			}).Debug("Message sent - observability tracking")
+		},
+	)
 
 	// Initialize OpenTelemetry monitor
 	otelMonitor, err := observability.NewOTelMonitor(&cfg.OpenTelemetry, logger)

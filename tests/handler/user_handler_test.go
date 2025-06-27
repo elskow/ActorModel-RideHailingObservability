@@ -1,4 +1,4 @@
-package tests
+package handler
 
 import (
 	"bytes"
@@ -15,17 +15,15 @@ import (
 
 	"actor-model-observability/internal/handlers"
 	"actor-model-observability/internal/models"
+	"actor-model-observability/tests/utils"
 )
-
-// Mock repository implementations
-// Mock repositories are defined in benchmark_test.go
 
 // Test UserHandler.GetUser endpoint
 func TestUserHandler_GetUser_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Test with valid user ID
 	userID := "b412752c-e710-4647-8bdf-252abe290fa1"
@@ -67,9 +65,9 @@ func TestUserHandler_GetUser_Success(t *testing.T) {
 
 func TestUserHandler_GetUser_InvalidUUID(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -96,9 +94,9 @@ func TestUserHandler_GetUser_InvalidUUID(t *testing.T) {
 
 func TestUserHandler_GetUser_NotFound(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Test with non-existent user ID
 	nonExistentID := uuid.New().String()
@@ -125,9 +123,9 @@ func TestUserHandler_GetUser_NotFound(t *testing.T) {
 // Test UserHandler.GetOnlineDrivers endpoint
 func TestUserHandler_GetOnlineDrivers_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	lat := 40.7128
@@ -173,9 +171,9 @@ func TestUserHandler_GetOnlineDrivers_Success(t *testing.T) {
 // Test UserHandler.CreatePassenger endpoint
 func TestUserHandler_CreatePassenger_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	userRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.User")).Return(nil)
@@ -219,9 +217,9 @@ func TestUserHandler_CreatePassenger_Success(t *testing.T) {
 
 func TestUserHandler_CreatePassenger_InvalidJSON(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -249,9 +247,9 @@ func TestUserHandler_CreatePassenger_InvalidJSON(t *testing.T) {
 
 func TestUserHandler_CreatePassenger_MissingFields(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -286,9 +284,9 @@ func TestUserHandler_CreatePassenger_MissingFields(t *testing.T) {
 // Test UserHandler.CreateUser endpoint
 func TestUserHandler_CreateUser_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	userRepo.On("Create", mock.Anything, mock.AnythingOfType("*models.User")).Return(nil)
@@ -331,9 +329,9 @@ func TestUserHandler_CreateUser_Success(t *testing.T) {
 
 func TestUserHandler_CreateUser_InvalidJSON(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -361,9 +359,9 @@ func TestUserHandler_CreateUser_InvalidJSON(t *testing.T) {
 
 func TestUserHandler_CreateUser_MissingFields(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -398,9 +396,9 @@ func TestUserHandler_CreateUser_MissingFields(t *testing.T) {
 // Test UserHandler.UpdateUser endpoint
 func TestUserHandler_UpdateUser_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	existingUser := &models.User{
@@ -447,9 +445,9 @@ func TestUserHandler_UpdateUser_Success(t *testing.T) {
 
 func TestUserHandler_UpdateUser_InvalidUUID(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -483,9 +481,9 @@ func TestUserHandler_UpdateUser_InvalidUUID(t *testing.T) {
 // Test UserHandler.ListUsers endpoint
 func TestUserHandler_ListUsers_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	users := []*models.User{
@@ -536,9 +534,9 @@ func TestUserHandler_ListUsers_Success(t *testing.T) {
 
 func TestUserHandler_ListUsers_InvalidLimit(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -565,9 +563,9 @@ func TestUserHandler_ListUsers_InvalidLimit(t *testing.T) {
 // Test UserHandler.GetDriver endpoint
 func TestUserHandler_GetDriver_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	expectedDriver := &models.Driver{
@@ -609,9 +607,9 @@ func TestUserHandler_GetDriver_Success(t *testing.T) {
 
 func TestUserHandler_GetDriver_InvalidUUID(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -640,9 +638,9 @@ func TestUserHandler_GetDriver_InvalidUUID(t *testing.T) {
 func TestUserHandler_GetUser_RealScenario(t *testing.T) {
 	// This test simulates the actual scenario described in the issue
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	expectedUser := &models.User{
@@ -675,9 +673,9 @@ func TestUserHandler_GetUser_RealScenario(t *testing.T) {
 // Test UserHandler.UpdateDriverLocation endpoint
 func TestUserHandler_UpdateDriverLocation_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	driverRepo.On("UpdateLocation", mock.Anything, "550e8400-e29b-41d4-a716-446655440001", -6.2088, 106.8456).Return(nil)
@@ -716,9 +714,9 @@ func TestUserHandler_UpdateDriverLocation_Success(t *testing.T) {
 
 func TestUserHandler_UpdateDriverLocation_InvalidUUID(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -753,9 +751,9 @@ func TestUserHandler_UpdateDriverLocation_InvalidUUID(t *testing.T) {
 
 func TestUserHandler_UpdateDriverLocation_InvalidJSON(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -785,9 +783,9 @@ func TestUserHandler_UpdateDriverLocation_InvalidJSON(t *testing.T) {
 
 func TestUserHandler_UpdateDriverLocation_MissingFields(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -822,9 +820,9 @@ func TestUserHandler_UpdateDriverLocation_MissingFields(t *testing.T) {
 
 func TestUserHandler_UpdateDriverLocation_InvalidCoordinates(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -861,9 +859,9 @@ func TestUserHandler_UpdateDriverLocation_InvalidCoordinates(t *testing.T) {
 // Test UserHandler.UpdateDriverStatus endpoint
 func TestUserHandler_UpdateDriverStatus_Success(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	// Setup mock expectations
 	driverRepo.On("UpdateStatus", mock.Anything, "550e8400-e29b-41d4-a716-446655440001", models.DriverStatus("online")).Return(nil)
@@ -901,9 +899,9 @@ func TestUserHandler_UpdateDriverStatus_Success(t *testing.T) {
 
 func TestUserHandler_UpdateDriverStatus_InvalidUUID(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -937,9 +935,9 @@ func TestUserHandler_UpdateDriverStatus_InvalidUUID(t *testing.T) {
 
 func TestUserHandler_UpdateDriverStatus_InvalidJSON(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -969,9 +967,9 @@ func TestUserHandler_UpdateDriverStatus_InvalidJSON(t *testing.T) {
 
 func TestUserHandler_UpdateDriverStatus_MissingFields(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 
@@ -1004,9 +1002,9 @@ func TestUserHandler_UpdateDriverStatus_MissingFields(t *testing.T) {
 
 func TestUserHandler_UpdateDriverStatus_InvalidStatus(t *testing.T) {
 	// Setup
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
 
 	userHandler := handlers.NewUserHandler(userRepo, driverRepo, passengerRepo)
 

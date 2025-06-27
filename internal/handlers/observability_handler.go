@@ -7,6 +7,7 @@ import (
 
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository"
+
 	"github.com/gin-gonic/gin"
 )
 

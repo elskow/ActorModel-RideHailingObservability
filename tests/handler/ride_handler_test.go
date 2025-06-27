@@ -1,8 +1,8 @@
-package tests
+package handler
 
 import (
+	"actor-model-observability/tests/utils"
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,52 +12,15 @@ import (
 
 	"actor-model-observability/internal/handlers"
 	"actor-model-observability/internal/models"
-	"actor-model-observability/internal/service"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// MockRideService is a mock implementation of RideServiceInterface
-type MockRideService struct {
-	mock.Mock
-}
-
-// Ensure MockRideService implements service.RideServiceInterface
-var _ service.RideServiceInterface = (*MockRideService)(nil)
-
-func (m *MockRideService) RequestRide(ctx context.Context, passengerID string, pickup, dropoff models.Location, pickupAddr, dropoffAddr string) (*models.Trip, error) {
-	args := m.Called(ctx, passengerID, pickup, dropoff, pickupAddr, dropoffAddr)
-	return args.Get(0).(*models.Trip), args.Error(1)
-}
-
-func (m *MockRideService) CancelRide(ctx context.Context, tripID string, reason string) error {
-	args := m.Called(ctx, tripID, reason)
-	return args.Error(0)
-}
-
-func (m *MockRideService) GetTripStatus(ctx context.Context, tripID string) (*models.Trip, error) {
-	args := m.Called(ctx, tripID)
-	return args.Get(0).(*models.Trip), args.Error(1)
-}
-
-func (m *MockRideService) ListRides(ctx context.Context, passengerID, driverID *string, status *string, limit, offset int) ([]*models.Trip, int64, error) {
-	args := m.Called(ctx, passengerID, driverID, status, limit, offset)
-	return args.Get(0).([]*models.Trip), args.Get(1).(int64), args.Error(2)
-}
-
-// setupRideHandler creates a test handler with mocked dependencies
-func setupRideHandler() (*handlers.RideHandler, *MockRideService) {
-	mockService := new(MockRideService)
-	handler := handlers.NewRideHandler(mockService)
-	return handler, mockService
-}
-
 // TestRideHandler_RequestRide_Success tests successful ride request
 func TestRideHandler_RequestRide_Success(t *testing.T) {
-	handler, mockService := setupRideHandler()
+	handler, mockService := utils.SetupRideHandler()
 
 	// Setup test data
 	passengerID := uuid.New()
@@ -121,7 +84,7 @@ func TestRideHandler_RequestRide_Success(t *testing.T) {
 
 // TestRideHandler_RequestRide_InvalidJSON tests request with invalid JSON
 func TestRideHandler_RequestRide_InvalidJSON(t *testing.T) {
-	handler, _ := setupRideHandler()
+	handler, _ := utils.SetupRideHandler()
 
 	// Create request with invalid JSON
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/rides/request", bytes.NewBufferString("invalid json"))
@@ -147,7 +110,7 @@ func TestRideHandler_RequestRide_InvalidJSON(t *testing.T) {
 
 // TestRideHandler_RequestRide_MissingFields tests request with missing required fields
 func TestRideHandler_RequestRide_MissingFields(t *testing.T) {
-	handler, _ := setupRideHandler()
+	handler, _ := utils.SetupRideHandler()
 
 	// Create request with missing fields
 	requestBody := map[string]interface{}{
@@ -179,7 +142,7 @@ func TestRideHandler_RequestRide_MissingFields(t *testing.T) {
 
 // TestRideHandler_RequestRide_ServiceError tests service error handling
 func TestRideHandler_RequestRide_ServiceError(t *testing.T) {
-	handler, mockService := setupRideHandler()
+	handler, mockService := utils.SetupRideHandler()
 
 	// Setup test data
 	passengerID := uuid.New()
@@ -225,7 +188,7 @@ func TestRideHandler_RequestRide_ServiceError(t *testing.T) {
 
 // TestRideHandler_CancelRide_Success tests successful ride cancellation
 func TestRideHandler_CancelRide_Success(t *testing.T) {
-	handler, mockService := setupRideHandler()
+	handler, mockService := utils.SetupRideHandler()
 
 	// Setup test data
 	tripID := uuid.New()
@@ -270,7 +233,7 @@ func TestRideHandler_CancelRide_Success(t *testing.T) {
 
 // TestRideHandler_GetRideStatus_Success tests successful ride status retrieval
 func TestRideHandler_GetRideStatus_Success(t *testing.T) {
-	handler, mockService := setupRideHandler()
+	handler, mockService := utils.SetupRideHandler()
 
 	// Setup test data
 	tripID := uuid.New()
@@ -315,7 +278,7 @@ func TestRideHandler_GetRideStatus_Success(t *testing.T) {
 
 // TestRideHandler_GetRideStatus_InvalidUUID tests invalid trip ID
 func TestRideHandler_GetRideStatus_InvalidUUID(t *testing.T) {
-	handler, _ := setupRideHandler()
+	handler, _ := utils.SetupRideHandler()
 
 	// Create request with invalid UUID
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/rides/invalid-uuid/status", nil)
@@ -341,7 +304,7 @@ func TestRideHandler_GetRideStatus_InvalidUUID(t *testing.T) {
 
 // TestRideHandler_GetRideStatus_NotFound tests trip not found
 func TestRideHandler_GetRideStatus_NotFound(t *testing.T) {
-	handler, mockService := setupRideHandler()
+	handler, mockService := utils.SetupRideHandler()
 
 	// Setup test data
 	tripID := uuid.New()
@@ -375,7 +338,7 @@ func TestRideHandler_GetRideStatus_NotFound(t *testing.T) {
 
 // TestRideHandler_ListRides_Success tests successful ride listing
 func TestRideHandler_ListRides_Success(t *testing.T) {
-	handler, mockService := setupRideHandler()
+	handler, mockService := utils.SetupRideHandler()
 
 	// Setup test data
 	trip1 := &models.Trip{
@@ -432,7 +395,7 @@ func TestRideHandler_ListRides_Success(t *testing.T) {
 
 // TestRideHandler_ListRides_InvalidLimit tests invalid limit parameter
 func TestRideHandler_ListRides_InvalidLimit(t *testing.T) {
-	handler, _ := setupRideHandler()
+	handler, _ := utils.SetupRideHandler()
 
 	// Create request with invalid limit
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/rides?limit=invalid", nil)
@@ -457,7 +420,7 @@ func TestRideHandler_ListRides_InvalidLimit(t *testing.T) {
 
 // TestRideHandler_ListRides_InvalidOffset tests invalid offset parameter
 func TestRideHandler_ListRides_InvalidOffset(t *testing.T) {
-	handler, _ := setupRideHandler()
+	handler, _ := utils.SetupRideHandler()
 
 	// Create request with invalid offset
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/rides?offset=-1", nil)

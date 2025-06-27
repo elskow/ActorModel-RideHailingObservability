@@ -1,4 +1,4 @@
-package tests
+package repository
 
 import (
 	"context"
@@ -82,7 +82,8 @@ func TestPassengerRepository_GetByID_NotFound(t *testing.T) {
 	assert.Nil(t, result)
 	assert.IsType(t, &models.NotFoundError{}, err)
 
-	notFoundErr := err.(*models.NotFoundError)
+	var notFoundErr *models.NotFoundError
+	errors.As(err, &notFoundErr)
 	assert.Equal(t, "passenger", notFoundErr.Resource)
 	assert.Equal(t, passengerID.String(), notFoundErr.ID)
 
@@ -201,7 +202,8 @@ func TestPassengerRepository_Create_UserIDExists(t *testing.T) {
 	assert.Error(t, err)
 	assert.IsType(t, &models.ValidationError{}, err)
 
-	validationErr := err.(*models.ValidationError)
+	var validationErr *models.ValidationError
+	errors.As(err, &validationErr)
 	assert.Equal(t, "user_id", validationErr.Field)
 	assert.Equal(t, "passenger already exists for this user", validationErr.Message)
 
@@ -379,7 +381,8 @@ func TestPassengerRepository_Delete_NotFound(t *testing.T) {
 	assert.Error(t, err)
 	assert.IsType(t, &models.NotFoundError{}, err)
 
-	notFoundErr := err.(*models.NotFoundError)
+	var notFoundErr *models.NotFoundError
+	errors.As(err, &notFoundErr)
 	assert.Equal(t, "passenger", notFoundErr.Resource)
 	assert.Equal(t, passengerID.String(), notFoundErr.ID)
 

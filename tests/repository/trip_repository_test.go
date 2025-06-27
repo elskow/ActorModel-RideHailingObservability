@@ -1,4 +1,4 @@
-package tests
+package repository
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository/postgres"
+	"actor-model-observability/tests/utils"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestTripRepository_Create_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTripRepository(db)
@@ -33,8 +34,8 @@ func TestTripRepository_Create_Success(t *testing.T) {
 		PickupLongitude:      -74.0060,
 		DestinationLatitude:  40.7589,
 		DestinationLongitude: -73.9851,
-		PickupAddress:        stringPtr("123 Main St"),
-		DestinationAddress:   stringPtr("456 Broadway"),
+		PickupAddress:        utils.StringPtr("123 Main St"),
+		DestinationAddress:   utils.StringPtr("456 Broadway"),
 		Status:               models.TripStatusRequested,
 		RequestedAt:          now,
 		CreatedAt:            now,
@@ -59,7 +60,7 @@ func TestTripRepository_Create_Success(t *testing.T) {
 }
 
 func TestTripRepository_GetByID_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTripRepository(db)
@@ -99,7 +100,7 @@ func TestTripRepository_GetByID_Success(t *testing.T) {
 }
 
 func TestTripRepository_GetByID_NotFound(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTripRepository(db)
@@ -117,7 +118,7 @@ func TestTripRepository_GetByID_NotFound(t *testing.T) {
 }
 
 func TestTripRepository_Update_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTripRepository(db)
@@ -159,7 +160,7 @@ func TestTripRepository_Update_Success(t *testing.T) {
 }
 
 func TestTripRepository_GetByPassengerID_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTripRepository(db)
@@ -203,7 +204,7 @@ func TestTripRepository_GetByPassengerID_Success(t *testing.T) {
 }
 
 func TestTripRepository_GetActiveTrips_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTripRepository(db)
@@ -240,7 +241,7 @@ func TestTripRepository_GetActiveTrips_Success(t *testing.T) {
 }
 
 func TestTripRepository_GetTripsByStatus_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTripRepository(db)
@@ -277,7 +278,7 @@ func TestTripRepository_GetTripsByStatus_Success(t *testing.T) {
 }
 
 func TestTripRepository_Delete_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTripRepository(db)

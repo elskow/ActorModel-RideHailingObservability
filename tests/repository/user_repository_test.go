@@ -1,8 +1,9 @@
-package tests
+package repository
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
@@ -88,7 +89,8 @@ func TestUserRepository_GetByID_NotFound(t *testing.T) {
 	assert.Nil(t, result)
 	assert.IsType(t, &models.NotFoundError{}, err)
 
-	notFoundErr := err.(*models.NotFoundError)
+	var notFoundErr *models.NotFoundError
+	errors.As(err, &notFoundErr)
 	assert.Equal(t, "user", notFoundErr.Resource)
 	assert.Equal(t, userID.String(), notFoundErr.ID)
 
@@ -185,7 +187,8 @@ func TestUserRepository_Create_EmailExists(t *testing.T) {
 	assert.Error(t, err)
 	assert.IsType(t, &models.ValidationError{}, err)
 
-	validationErr := err.(*models.ValidationError)
+	var validationErr *models.ValidationError
+	errors.As(err, &validationErr)
 	assert.Equal(t, "email", validationErr.Field)
 	assert.Equal(t, "email already exists", validationErr.Message)
 
@@ -254,7 +257,8 @@ func TestUserRepository_Update_NotFound(t *testing.T) {
 	assert.Error(t, err)
 	assert.IsType(t, &models.NotFoundError{}, err)
 
-	notFoundErr := err.(*models.NotFoundError)
+	var notFoundErr *models.NotFoundError
+	errors.As(err, &notFoundErr)
 	assert.Equal(t, "user", notFoundErr.Resource)
 	assert.Equal(t, user.ID.String(), notFoundErr.ID)
 

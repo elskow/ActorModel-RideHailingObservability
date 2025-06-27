@@ -1,4 +1,4 @@
-package tests
+package repository
 
 import (
 	"context"
@@ -95,7 +95,8 @@ func TestDriverRepository_GetByID_NotFound(t *testing.T) {
 	assert.Nil(t, result)
 	assert.IsType(t, &models.NotFoundError{}, err)
 
-	notFoundErr := err.(*models.NotFoundError)
+	var notFoundErr *models.NotFoundError
+	errors.As(err, &notFoundErr)
 	assert.Equal(t, "driver", notFoundErr.Resource)
 	assert.Equal(t, driverID.String(), notFoundErr.ID)
 

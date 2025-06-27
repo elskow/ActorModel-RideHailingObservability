@@ -1,4 +1,4 @@
-package tests
+package benchmark
 
 import (
 	"context"
@@ -17,6 +17,7 @@ import (
 	"actor-model-observability/internal/observability"
 	"actor-model-observability/internal/service"
 	"actor-model-observability/internal/traditional"
+	"actor-model-observability/tests/utils"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
@@ -94,10 +95,10 @@ func setupBenchmark(b *testing.B) *BenchmarkSetup {
 	traditionalMonitor := traditional.NewTraditionalMonitor(logger, otelMonitor)
 
 	// Create mock repositories
-	userRepo := &MockUserRepository{}
-	driverRepo := &MockDriverRepository{}
-	passengerRepo := &MockPassengerRepository{}
-	tripRepo := &MockTripRepository{}
+	userRepo := &utils.MockUserRepository{}
+	driverRepo := &utils.MockDriverRepository{}
+	passengerRepo := &utils.MockPassengerRepository{}
+	tripRepo := &utils.MockTripRepository{}
 
 	// Setup mock expectations for benchmark tests
 	// Mock passenger repository
@@ -228,7 +229,7 @@ func setupTraditionalRouter(rideService *service.RideService, traditionalMonitor
 	return router
 }
 
-// Mock repositories are now defined in test_helpers.go
+// Mock repositories are now defined in common.go
 
 // Benchmark tests
 

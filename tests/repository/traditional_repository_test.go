@@ -1,4 +1,4 @@
-package tests
+package repository
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 
 	"actor-model-observability/internal/models"
 	"actor-model-observability/internal/repository/postgres"
+	"actor-model-observability/tests/utils"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestTraditionalRepository_CreateTraditionalMetric_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -52,7 +53,7 @@ func TestTraditionalRepository_CreateTraditionalMetric_Success(t *testing.T) {
 }
 
 func TestTraditionalRepository_GetTraditionalMetric_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -90,7 +91,7 @@ func TestTraditionalRepository_GetTraditionalMetric_Success(t *testing.T) {
 }
 
 func TestTraditionalRepository_GetTraditionalMetric_NotFound(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -108,7 +109,7 @@ func TestTraditionalRepository_GetTraditionalMetric_NotFound(t *testing.T) {
 }
 
 func TestTraditionalRepository_ListTraditionalMetrics_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -144,7 +145,7 @@ func TestTraditionalRepository_ListTraditionalMetrics_Success(t *testing.T) {
 }
 
 func TestTraditionalRepository_GetTraditionalMetricsByTimeRange_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -177,7 +178,7 @@ func TestTraditionalRepository_GetTraditionalMetricsByTimeRange_Success(t *testi
 }
 
 func TestTraditionalRepository_CreateTraditionalLog_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -211,7 +212,7 @@ func TestTraditionalRepository_CreateTraditionalLog_Success(t *testing.T) {
 }
 
 func TestTraditionalRepository_GetTraditionalLog_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -242,7 +243,7 @@ func TestTraditionalRepository_GetTraditionalLog_Success(t *testing.T) {
 }
 
 func TestTraditionalRepository_GetTraditionalLog_NotFound(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -260,7 +261,7 @@ func TestTraditionalRepository_GetTraditionalLog_NotFound(t *testing.T) {
 }
 
 func TestTraditionalRepository_ListTraditionalLogs_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -296,7 +297,7 @@ func TestTraditionalRepository_ListTraditionalLogs_Success(t *testing.T) {
 }
 
 func TestTraditionalRepository_GetTraditionalLogsByTimeRange_Success(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -329,7 +330,7 @@ func TestTraditionalRepository_GetTraditionalLogsByTimeRange_Success(t *testing.
 }
 
 func TestTraditionalRepository_CreateTraditionalLog_DatabaseError(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)
@@ -363,7 +364,7 @@ func TestTraditionalRepository_CreateTraditionalLog_DatabaseError(t *testing.T) 
 }
 
 func TestTraditionalRepository_ListTraditionalLogs_EmptyResult(t *testing.T) {
-	db, mock := SetupMockDB(t)
+	db, mock := utils.SetupMockDB(t)
 	defer db.Close()
 
 	repo := postgres.NewTraditionalRepository(db)

@@ -1,7 +1,7 @@
-package tests
+package handler
 
 import (
-	"context"
+	"actor-model-observability/tests/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -18,178 +17,9 @@ import (
 	"actor-model-observability/internal/models"
 )
 
-// MockObservabilityRepository is a mock implementation of ObservabilityRepository
-type MockObservabilityRepository struct {
-	mock.Mock
-}
-
-func (m *MockObservabilityRepository) CreateActorInstance(ctx context.Context, instance *models.ActorInstance) error {
-	args := m.Called(ctx, instance)
-	return args.Error(0)
-}
-
-func (m *MockObservabilityRepository) GetActorInstance(ctx context.Context, id string) (*models.ActorInstance, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*models.ActorInstance), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) UpdateActorInstance(ctx context.Context, instance *models.ActorInstance) error {
-	args := m.Called(ctx, instance)
-	return args.Error(0)
-}
-
-func (m *MockObservabilityRepository) ListActorInstances(ctx context.Context, actorType string, limit, offset int) ([]*models.ActorInstance, error) {
-	args := m.Called(ctx, actorType, limit, offset)
-	return args.Get(0).([]*models.ActorInstance), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) CreateActorMessage(ctx context.Context, message *models.ActorMessage) error {
-	args := m.Called(ctx, message)
-	return args.Error(0)
-}
-
-func (m *MockObservabilityRepository) GetActorMessage(ctx context.Context, id string) (*models.ActorMessage, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*models.ActorMessage), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) ListActorMessages(ctx context.Context, fromActor, toActor string, limit, offset int) ([]*models.ActorMessage, error) {
-	args := m.Called(ctx, fromActor, toActor, limit, offset)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*models.ActorMessage), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) GetMessagesByTimeRange(ctx context.Context, startTime, endTime string, limit, offset int) ([]*models.ActorMessage, error) {
-	args := m.Called(ctx, startTime, endTime, limit, offset)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*models.ActorMessage), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) CreateSystemMetric(ctx context.Context, metric *models.SystemMetric) error {
-	args := m.Called(ctx, metric)
-	return args.Error(0)
-}
-
-func (m *MockObservabilityRepository) GetSystemMetric(ctx context.Context, id string) (*models.SystemMetric, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*models.SystemMetric), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) ListSystemMetrics(ctx context.Context, metricType string, limit, offset int) ([]*models.SystemMetric, error) {
-	args := m.Called(ctx, metricType, limit, offset)
-	return args.Get(0).([]*models.SystemMetric), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) GetMetricsByTimeRange(ctx context.Context, startTime, endTime string, limit, offset int) ([]*models.SystemMetric, error) {
-	args := m.Called(ctx, startTime, endTime, limit, offset)
-	return args.Get(0).([]*models.SystemMetric), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) CreateDistributedTrace(ctx context.Context, trace *models.DistributedTrace) error {
-	args := m.Called(ctx, trace)
-	return args.Error(0)
-}
-
-func (m *MockObservabilityRepository) GetDistributedTrace(ctx context.Context, id string) (*models.DistributedTrace, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*models.DistributedTrace), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) GetTracesByTraceID(ctx context.Context, traceID string) ([]*models.DistributedTrace, error) {
-	args := m.Called(ctx, traceID)
-	return args.Get(0).([]*models.DistributedTrace), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) ListDistributedTraces(ctx context.Context, operation string, limit, offset int) ([]*models.DistributedTrace, error) {
-	args := m.Called(ctx, operation, limit, offset)
-	return args.Get(0).([]*models.DistributedTrace), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) CreateEventLog(ctx context.Context, log *models.EventLog) error {
-	args := m.Called(ctx, log)
-	return args.Error(0)
-}
-
-func (m *MockObservabilityRepository) GetEventLog(ctx context.Context, id string) (*models.EventLog, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*models.EventLog), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) ListEventLogs(ctx context.Context, eventType, source string, limit, offset int) ([]*models.EventLog, error) {
-	args := m.Called(ctx, eventType, source, limit, offset)
-	return args.Get(0).([]*models.EventLog), args.Error(1)
-}
-
-func (m *MockObservabilityRepository) GetEventLogsByTimeRange(ctx context.Context, startTime, endTime string, limit, offset int) ([]*models.EventLog, error) {
-	args := m.Called(ctx, startTime, endTime, limit, offset)
-	return args.Get(0).([]*models.EventLog), args.Error(1)
-}
-
-// MockTraditionalRepository is a mock implementation of TraditionalRepository
-type MockTraditionalRepository struct {
-	mock.Mock
-}
-
-func (m *MockTraditionalRepository) CreateTraditionalMetric(ctx context.Context, metric *models.TraditionalMetric) error {
-	args := m.Called(ctx, metric)
-	return args.Error(0)
-}
-
-func (m *MockTraditionalRepository) GetTraditionalMetric(ctx context.Context, id string) (*models.TraditionalMetric, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*models.TraditionalMetric), args.Error(1)
-}
-
-func (m *MockTraditionalRepository) ListTraditionalMetrics(ctx context.Context, name, metricType string, limit, offset int) ([]*models.TraditionalMetric, error) {
-	args := m.Called(ctx, name, metricType, limit, offset)
-	return args.Get(0).([]*models.TraditionalMetric), args.Error(1)
-}
-
-func (m *MockTraditionalRepository) GetTraditionalMetricsByTimeRange(ctx context.Context, startTime, endTime string, limit, offset int) ([]*models.TraditionalMetric, error) {
-	args := m.Called(ctx, startTime, endTime, limit, offset)
-	return args.Get(0).([]*models.TraditionalMetric), args.Error(1)
-}
-
-func (m *MockTraditionalRepository) CreateTraditionalLog(ctx context.Context, log *models.TraditionalLog) error {
-	args := m.Called(ctx, log)
-	return args.Error(0)
-}
-
-func (m *MockTraditionalRepository) GetTraditionalLog(ctx context.Context, id string) (*models.TraditionalLog, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*models.TraditionalLog), args.Error(1)
-}
-
-func (m *MockTraditionalRepository) ListTraditionalLogs(ctx context.Context, level, source string, limit, offset int) ([]*models.TraditionalLog, error) {
-	args := m.Called(ctx, level, source, limit, offset)
-	return args.Get(0).([]*models.TraditionalLog), args.Error(1)
-}
-
-func (m *MockTraditionalRepository) GetTraditionalLogsByTimeRange(ctx context.Context, startTime, endTime string, limit, offset int) ([]*models.TraditionalLog, error) {
-	args := m.Called(ctx, startTime, endTime, limit, offset)
-	return args.Get(0).([]*models.TraditionalLog), args.Error(1)
-}
-
-// setupObservabilityHandler creates a test setup for observability handler
-func setupObservabilityHandler() (*gin.Engine, *MockObservabilityRepository, *MockTraditionalRepository, *handlers.ObservabilityHandler) {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-
-	mockObsRepo := &MockObservabilityRepository{}
-	mockTradRepo := &MockTraditionalRepository{}
-
-	obsHandler := handlers.NewObservabilityHandler(mockObsRepo, mockTradRepo)
-
-	return router, mockObsRepo, mockTradRepo, obsHandler
-}
-
 // Test GetActorInstances endpoint
 func TestObservabilityHandler_GetActorInstances_Success(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/actors", obsHandler.GetActorInstances)
@@ -232,7 +62,7 @@ func TestObservabilityHandler_GetActorInstances_Success(t *testing.T) {
 }
 
 func TestObservabilityHandler_GetActorInstances_InvalidLimit(t *testing.T) {
-	router, _, _, obsHandler := setupObservabilityHandler()
+	router, _, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/actors", obsHandler.GetActorInstances)
@@ -255,7 +85,7 @@ func TestObservabilityHandler_GetActorInstances_InvalidLimit(t *testing.T) {
 
 // Test GetActorMessages endpoint
 func TestObservabilityHandler_GetActorMessages_Success(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/messages", obsHandler.GetActorMessages)
@@ -300,13 +130,13 @@ func TestObservabilityHandler_GetActorMessages_Success(t *testing.T) {
 }
 
 func TestObservabilityHandler_GetActorMessages_WithTimeRange(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/messages", obsHandler.GetActorMessages)
 
 	// Mock data
-	messages := []*models.ActorMessage{}
+	var messages []*models.ActorMessage
 
 	// Setup mock expectations
 	mockObsRepo.On("GetMessagesByTimeRange", mock.Anything, "2024-01-01T00:00:00Z", "2024-01-02T00:00:00Z", 20, 0).Return(messages, nil)
@@ -325,7 +155,7 @@ func TestObservabilityHandler_GetActorMessages_WithTimeRange(t *testing.T) {
 
 // Test GetSystemMetrics endpoint
 func TestObservabilityHandler_GetSystemMetrics_Success(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/metrics", obsHandler.GetSystemMetrics)
@@ -370,7 +200,7 @@ func TestObservabilityHandler_GetSystemMetrics_Success(t *testing.T) {
 
 // Test GetDistributedTraces endpoint
 func TestObservabilityHandler_GetDistributedTraces_Success(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/traces", obsHandler.GetDistributedTraces)
@@ -415,14 +245,14 @@ func TestObservabilityHandler_GetDistributedTraces_Success(t *testing.T) {
 }
 
 func TestObservabilityHandler_GetDistributedTraces_ByTraceID(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/traces", obsHandler.GetDistributedTraces)
 
 	// Mock data
 	traceID := uuid.New().String()
-	traces := []*models.DistributedTrace{}
+	var traces []*models.DistributedTrace
 
 	// Setup mock expectations
 	mockObsRepo.On("GetTracesByTraceID", mock.Anything, traceID).Return(traces, nil)
@@ -441,7 +271,7 @@ func TestObservabilityHandler_GetDistributedTraces_ByTraceID(t *testing.T) {
 
 // Test GetEventLogs endpoint
 func TestObservabilityHandler_GetEventLogs_Success(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/events", obsHandler.GetEventLogs)
@@ -487,7 +317,7 @@ func TestObservabilityHandler_GetEventLogs_Success(t *testing.T) {
 
 // Test GetTraditionalMetrics endpoint
 func TestObservabilityHandler_GetTraditionalMetrics_Success(t *testing.T) {
-	router, _, mockTradRepo, obsHandler := setupObservabilityHandler()
+	router, _, mockTradRepo, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/traditional/metrics", obsHandler.GetTraditionalMetrics)
@@ -530,7 +360,7 @@ func TestObservabilityHandler_GetTraditionalMetrics_Success(t *testing.T) {
 
 // Test GetTraditionalLogs endpoint
 func TestObservabilityHandler_GetTraditionalLogs_Success(t *testing.T) {
-	router, _, mockTradRepo, obsHandler := setupObservabilityHandler()
+	router, _, mockTradRepo, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/traditional/logs", obsHandler.GetTraditionalLogs)
@@ -572,7 +402,7 @@ func TestObservabilityHandler_GetTraditionalLogs_Success(t *testing.T) {
 
 // Test GetServiceHealth endpoint
 func TestObservabilityHandler_GetServiceHealth_Success(t *testing.T) {
-	router, _, _, obsHandler := setupObservabilityHandler()
+	router, _, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/traditional/health", obsHandler.GetServiceHealth)
@@ -597,7 +427,7 @@ func TestObservabilityHandler_GetServiceHealth_Success(t *testing.T) {
 
 // Test GetLatestServiceHealth endpoint
 func TestObservabilityHandler_GetLatestServiceHealth_Success(t *testing.T) {
-	router, _, _, obsHandler := setupObservabilityHandler()
+	router, _, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/traditional/health/:service_name/latest", obsHandler.GetLatestServiceHealth)
@@ -620,7 +450,7 @@ func TestObservabilityHandler_GetLatestServiceHealth_Success(t *testing.T) {
 }
 
 func TestObservabilityHandler_GetLatestServiceHealth_EmptyServiceName(t *testing.T) {
-	router, _, _, obsHandler := setupObservabilityHandler()
+	router, _, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/traditional/health/:service_name/latest", obsHandler.GetLatestServiceHealth)
@@ -643,7 +473,7 @@ func TestObservabilityHandler_GetLatestServiceHealth_EmptyServiceName(t *testing
 
 // Test GetPrometheusMetrics endpoint
 func TestObservabilityHandler_GetPrometheusMetrics_Success(t *testing.T) {
-	router, mockObsRepo, mockTradRepo, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, mockTradRepo, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/prometheus", obsHandler.GetPrometheusMetrics)
@@ -704,7 +534,7 @@ func TestObservabilityHandler_GetPrometheusMetrics_Success(t *testing.T) {
 
 // Test GetTraditionalPrometheusMetrics endpoint
 func TestObservabilityHandler_GetTraditionalPrometheusMetrics_Success(t *testing.T) {
-	router, _, mockTradRepo, obsHandler := setupObservabilityHandler()
+	router, _, mockTradRepo, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/traditional/prometheus", obsHandler.GetTraditionalPrometheusMetrics)
@@ -748,7 +578,7 @@ func TestObservabilityHandler_GetTraditionalPrometheusMetrics_Success(t *testing
 
 // Test error scenarios
 func TestObservabilityHandler_GetActorInstances_RepositoryError(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/actors", obsHandler.GetActorInstances)
@@ -776,7 +606,7 @@ func TestObservabilityHandler_GetActorInstances_RepositoryError(t *testing.T) {
 }
 
 func TestObservabilityHandler_GetSystemMetrics_InvalidOffset(t *testing.T) {
-	router, _, _, obsHandler := setupObservabilityHandler()
+	router, _, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/metrics", obsHandler.GetSystemMetrics)
@@ -798,7 +628,7 @@ func TestObservabilityHandler_GetSystemMetrics_InvalidOffset(t *testing.T) {
 }
 
 func TestObservabilityHandler_GetPrometheusMetrics_RepositoryError(t *testing.T) {
-	router, mockObsRepo, _, obsHandler := setupObservabilityHandler()
+	router, mockObsRepo, _, obsHandler := utils.SetupObservabilityHandler()
 
 	// Setup route
 	router.GET("/api/v1/observability/prometheus", obsHandler.GetPrometheusMetrics)
